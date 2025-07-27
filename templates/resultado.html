@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Resultado del Análisis{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header text-center">
+                <h3><i class="fas fa-chart-line me-2"></i>Resultado del Análisis de Crédito</h3>
+                <h5>Solicitud: {{ numero_solicitud }}</h5>
+            </div>
+            <div class="card-body">
+                <!-- SCORING -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="text-primary-custom">Scoring Detallado</h5>
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div class="progress-bar bg-info" style="width: {{ (score_total/450*100)|round(1) }}%">
+                                {{ score_total }}/450 puntos ({{ (score_total/450*100)|round(1) }}%)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6>Cualitativo</h6>
+                                <h4 class="text-primary">{{ score_q }}/210</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6>Histórico</h6>
+                                <h4 class="text-warning">{{ score_h }}/150</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6>Cuantitativo</h6>
+                                <h4 class="text-success">{{ score_c }}/90</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESULTADO -->
+                <div class="row">
+                    <div class="col-12">
+                        {% if resultado.dictamen == 'APROBADO' %}
+                            <div class="alert alert-success text-center">
+                                <h4><i class="fas fa-check-circle me-2"></i>CRÉDITO APROBADO</h4>
+                                <div class="row mt-3">
+                                    <div class="col-md-3">
+                                        <strong>Monto:</strong><br>
+                                        <span class="h5">${{ "%.2f"|format(resultado.monto) }}</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Tasa:</strong><br>
+                                        <span class="h5">{{ resultado.tasa }}% anual</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Plazo:</strong><br>
+                                        <span class="h5">{{ resultado.plazo }} meses</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Pago Mensual:</strong><br>
+                                        <span class="h5">${{ "%.2f"|format(resultado.monto * (resultado.tasa/100/12) * (1 + resultado.tasa/100/12)**resultado.plazo / ((1 + resultado.tasa/100/12)**resultado.plazo - 1)) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% elif resultado.dictamen == 'RECHAZADO' %}
+                            <div class="alert alert-danger text-center">
+                                <h4><i class="fas fa-times-circle me-2"></i>CRÉDITO RECHAZADO</h4>
+                                <p><strong>Motivos:</strong> {{ resultado.observaciones }}</p>
+                            </div>
+                        {% elif resultado.dictamen == 'ZONA_GRIS' %}
+                            <div class="alert alert-warning text-center">
+                                <h4><i class="fas fa-exclamation-triangle me-2"></i>REQUIERE APROBACIÓN GERENCIAL</h4>
+                                <p>{{ resultado.observaciones }}</p>
+                                <small>Enviar a: gerente1@creditoabcd.com</small>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mt-3">
+                            <p><strong>Observaciones:</strong> {{ resultado.observaciones }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12 text-center">
+                        <a href="{{ url_for('captura_analista') }}" class="btn btn-primary-custom me-3">
+                            <i class="fas fa-plus me-2"></i>Nueva Solicitud
+                        </a>
+                        <button onclick="window.print()" class="btn btn-outline-secondary">
+                            <i class="fas fa-print me-2"></i>Imprimir Resultado
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

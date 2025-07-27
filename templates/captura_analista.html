@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Captura de Solicitud{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header">
+                <h4><i class="fas fa-edit me-2"></i>Captura de Solicitud de Crédito</h4>
+                <small>Analista: {{ analista }} | No. Solicitud: <strong>{{ numero_solicitud }}</strong></small>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('procesar_solicitud') }}">
+                    <input type="hidden" name="numero_solicitud" value="{{ numero_solicitud }}">
+                    
+                    <!-- DATOS DEL CLIENTE -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-primary-custom"><i class="fas fa-user me-2"></i>Datos del Cliente</h5>
+                            <hr>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Nombre Completo: *</label>
+                            <input type="text" class="form-control" name="nombre_cliente" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">RFC: *</label>
+                            <input type="text" class="form-control" name="rfc" maxlength="13" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Fecha de Nacimiento: *</label>
+                            <input type="date" class="form-control" name="fecha_nacimiento" required onchange="calcularEdad()">
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Edad:</label>
+                            <input type="number" class="form-control" name="edad" readonly>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Estado Civil: *</label>
+                            <select class="form-select" name="estado_civil" required>
+                                <option value="">Seleccionar</option>
+                                <option value="SOLTERO">Soltero</option>
+                                <option value="CASADO">Casado</option>
+                                <option value="DIVORCIADO">Divorciado</option>
+                                <option value="VIUDO">Viudo</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Dependientes:</label>
+                            <input type="number" class="form-control" name="dependientes" min="0" value="0">
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Nivel de Estudios:</label>
+                            <select class="form-select" name="nivel_estudios">
+                                <option value="">Seleccionar</option>
+                                <option value="PRIMARIA">Primaria</option>
+                                <option value="SECUNDARIA">Secundaria</option>
+                                <option value="PREPARATORIA">Preparatoria</option>
+                                <option value="UNIVERSIDAD">Universidad</option>
+                                <option value="POSGRADO">Posgrado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- INFORMACIÓN FINANCIERA -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-primary-custom"><i class="fas fa-dollar-sign me-2"></i>Información Financiera</h5>
+                            <hr>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Ingreso Mensual: *</label>
+                            <input type="number" class="form-control" name="ingreso_mensual" step="0.01" required>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">FICO Score: *</label>
+                            <input type="number" class="form-control" name="fico_score" min="300" max="800" required>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">TDSR (%): *</label>
+                            <input type="number" class="form-control" name="tdsr" step="0.01" min="0" max="100" required>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Pagos Mínimos:</label>
+                            <input type="number" class="form-control" name="pagos_minimos" step="0.01">
+                        </div>
+                    </div>
+
+                    <!-- UBICACIÓN -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-primary-custom"><i class="fas fa-map-marker-alt me-2"></i>Ubicación</h5>
+                            <hr>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Código Postal:</label>
+                            <input type="text" class="form-control" name="codigo_postal" maxlength="5">
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Estado:</label>
+                            <input type="text" class="form-control" name="estado">
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Municipio:</label>
+                            <input type="text" class="form-control" name="municipio">
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Zona:</label>
+                            <select class="form-select" name="zona">
+                                <option value="">Seleccionar</option>
+                                <option value="URBANA">Urbana</option>
+                                <option value="SEMIURBANA">Semiurbana</option>
+                                <option value="RURAL">Rural</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- INFORMACIÓN LABORAL -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-primary-custom"><i class="fas fa-briefcase me-2"></i>Información Laboral</h5>
+                            <hr>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ocupación:</label>
+                            <select class="form-select" name="ocupacion">
+                                <option value="">Seleccionar</option>
+                                <option value="EMPLEADO PÚBLICO">Empleado Público</option>
+                                <option value="EMPLEADO PRIVADO">Empleado Privado</option>
+                                <option value="PROFESIONISTA INDEPENDIENTE">Profesionista Independiente</option>
+                                <option value="NEGOCIO PROPIO">Negocio Propio</option>
+                                <option value="COMERCIANTE">Comerciante</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Antigüedad Empleo (años):</label>
+                            <input type="number" class="form-control" name="antiguedad_empleo" min="0">
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Antigüedad Domicilio (años):</label>
+                            <input type="number" class="form-control" name="antiguedad_domicilio" min="0">
+                        </div>
+                    </div>
+
+                    <!-- VALIDACIONES -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="text-primary-custom"><i class="fas fa-check-circle me-2"></i>Validaciones y Documentos</h5>
+                            <hr>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Validación ID:</label>
+                            <select class="form-select" name="validacion_id">
+                                <option value="">Seleccionar</option>
+                                <option value="SI">Sí</option>
+                                <option value="NO">No</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Comprobante Ingresos:</label>
+                            <select class="form-select" name="comprobante_ingresos">
+                                <option value="">Seleccionar</option>
+                                <option value="SI">Sí</option>
+                                <option value="NO">No</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Calificación SIC:</label>
+                            <select class="form-select" name="calificacion_sic">
+                                <option value="">Seleccionar</option>
+                                <option value="1">1 - Excelente</option>
+                                <option value="2">2 - Bueno</option>
+                                <option value="3">3 - Regular</option>
+                                <option value="4">4 - Malo</option>
+                                <option value="96">96 - Sin historial</option>
+                                <option value="97">97 - No disponible</option>
+                                <option value="98">98 - Otro</option>
+                                <option value="99">99 - Error</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">No. Consultas SIC:</label>
+                            <input type="number" class="form-control" name="consultas_sic" min="0">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12 text-center">
+                            <button type="submit" class="btn btn-primary-custom btn-lg me-3">
+                                <i class="fas fa-calculator me-2"></i>ANALIZAR CRÉDITO
+                            </button>
+                            <button type="reset" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-redo me-2"></i>Limpiar Formulario
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function calcularEdad() {
+    const fechaNacimiento = new Date(document.querySelector('[name="fecha_nacimiento"]').value);
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - fechaNacimiento.getFullYear();
+    const diferenciaMeses = hoy.getMonth() - fechaNacimiento.getMonth();
+    
+    if (diferenciaMeses < 0 || (diferenciaMeses === 0 && hoy.getDate() < fechaNacimiento.getDate())) {
+        edad--;
+    }
+    
+    document.querySelector('[name="edad"]').value = edad;
+}
+</script>
+{% endblock %}

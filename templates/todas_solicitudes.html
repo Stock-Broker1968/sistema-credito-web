@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Todas las Solicitudes{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4><i class="fas fa-database me-2"></i>Todas las Solicitudes</h4>
+                <a href="{{ url_for('panel_admin') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Volver al Panel
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>No. Solicitud</th>
+                                <th>Fecha</th>
+                                <th>Analista</th>
+                                <th>Cliente</th>
+                                <th>Dictamen</th>
+                                <th>Monto</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for solicitud in solicitudes %}
+                            <tr>
+                                <td><strong>{{ solicitud[0] }}</strong></td>
+                                <td>{{ solicitud[1][:16] }}</td>
+                                <td>E-{{ "%03d"|format(solicitud[2]) }}</td>
+                                <td>{{ solicitud[3] }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if solicitud[4] == 'APROBADO' else 'danger' if solicitud[4] == 'RECHAZADO' else 'warning' }}">
+                                        {{ solicitud[4] }}
+                                    </span>
+                                </td>
+                                <td>${{ "%.2f"|format(solicitud[5]) if solicitud[5] else '0.00' }}</td>
+                                <td>{{ solicitud[6] }}/450</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Panel de Administración{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header">
+                <h3><i class="fas fa-tachometer-alt me-2"></i>Dashboard Ejecutivo</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h5>Total Solicitudes</h5>
+                                <h2>{{ estadisticas.total_solicitudes }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5>% Aprobación</h5>
+                                <h2>{{ estadisticas.porcentaje_aprobacion }}%</h2>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5>Monto Promedio</h5>
+                                <h2>${{ "%.0f"|format(estadisticas.monto_promedio) }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5>Zona Gris</h5>
+                                <h2>{{ estadisticas.zona_gris }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <a href="{{ url_for('todas_solicitudes') }}" class="btn btn-primary-custom btn-lg w-100 mb-3">
+                            <i class="fas fa-list me-2"></i>Ver Todas las Solicitudes
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-warning btn-lg w-100 mb-3" onclick="alert('Función en desarrollo')">
+                            <i class="fas fa-cog me-2"></i>Configurar Reglas de Negocio
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SOLICITUDES RECIENTES -->
+        <div class="card shadow">
+            <div class="card-header">
+                <h5><i class="fas fa-clock me-2"></i>Solicitudes Recientes</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>No. Solicitud</th>
+                                <th>Cliente</th>
+                                <th>Dictamen</th>
+                                <th>Monto</th>
+                                <th>Fecha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for solicitud in estadisticas.solicitudes_recientes %}
+                            <tr>
+                                <td>{{ solicitud[0] }}</td>
+                                <td>{{ solicitud[1] }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if solicitud[2] == 'APROBADO' else 'danger' if solicitud[2] == 'RECHAZADO' else 'warning' }}">
+                                        {{ solicitud[2] }}
+                                    </span>
+                                </td>
+                                <td>${{ "%.2f"|format(solicitud[3]) if solicitud[3] else '0.00' }}</td>
+                                <td>{{ solicitud[4][:16] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

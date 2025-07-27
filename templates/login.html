@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Sistema de Crédito{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header text-center">
+                <h3><i class="fas fa-lock me-2"></i>Acceso al Sistema</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('login') }}" id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Usuario:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo_usuario" value="analista" id="analista" checked onchange="toggleFields()">
+                            <label class="form-check-label" for="analista">
+                                <i class="fas fa-user me-1"></i>Analista
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo_usuario" value="admin" id="admin" onchange="toggleFields()">
+                            <label class="form-check-label" for="admin">
+                                <i class="fas fa-user-shield me-1"></i>Administrador
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="analistaFields">
+                        <div class="mb-3">
+                            <label for="numero_analista" class="form-label">Número de Analista:</label>
+                            <div class="input-group">
+                                <span class="input-group-text">E-</span>
+                                <input type="number" class="form-control" id="numero_analista" name="numero_analista" 
+                                       placeholder="001" min="1" max="999">
+                            </div>
+                            <small class="form-text text-muted">Solo ingrese el número (ej: 1, 2, 3)</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="nip" class="form-label">NIP:</label>
+                            <input type="password" class="form-control" id="nip" name="nip" placeholder="Ingrese su NIP">
+                        </div>
+                    </div>
+
+                    <div id="adminFields" style="display: none;">
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Contraseña de Administrador:</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-custom w-100">
+                        <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                    </button>
+                </form>
+
+                <div class="mt-4">
+                    <small class="text-muted">
+                        <strong>Analistas de prueba:</strong><br>
+                        • E-001 (NIP: 1234)<br>
+                        • E-002 (NIP: 5678)<br>
+                        • E-003 (NIP: 9012)<br>
+                        <strong>Admin:</strong> RAG123
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFields() {
+    const isAnalista = document.getElementById('analista').checked;
+    document.getElementById('analistaFields').style.display = isAnalista ? 'block' : 'none';
+    document.getElementById('adminFields').style.display = isAnalista ? 'none' : 'block';
+}
+</script>
+{% endblock %}
