@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import sqlite3
 import hashlib
 from datetime import datetime
@@ -69,7 +69,7 @@ def encriptar_nip(nip):
 
 @app.route('/')
 def index():
-    return render_template('login.html')
+    return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -90,7 +90,7 @@ def login_analista():
         
         if tiene_usuario == 'si':
             # Usuario existente
-            numero_usuario = request.form['numero_usuario']
+            numero_usuario = f"E-{request.form['numero_usuario']}"
             nip = request.form['nip']
             
             conn = sqlite3.connect('credito.db')
@@ -210,7 +210,7 @@ def panel_analista():
     if 'user_type' not in session or session['user_type'] != 'analista':
         return redirect(url_for('login'))
     
-    return render_template('panel_analista.html', 
+    return render_template('captura_analista.html', 
                          user_name=session['user_name'],
                          user_id=session['user_id'])
 
@@ -222,10 +222,10 @@ def panel_admin():
     conn = sqlite3.connect('credito.db')
     cursor = conn.cursor()
     
-    # Obtener analistas pendientes de evaluación
+    # Obtener TODOS los datos de los analistas (corregido)
     cursor.execute('''
         SELECT numero_usuario, apellido_paterno, apellido_materno, nombre, 
-               registro_contribuyentes, fecha_registro, estado
+               registro_contribuyentes, nip, fecha_registro, estado
         FROM analistas 
         ORDER BY fecha_registro DESC
     ''')
@@ -263,22 +263,17 @@ def evaluar_analista(numero_usuario, accion):
     flash(f'Analista {numero_usuario} {nuevo_estado} exitosamente', 'success')
     return redirect(url_for('panel_admin'))
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('Sesión cerrada exitosamente', 'success')
-    return redirect(url_for('index'))
 @app.route('/resetear_nip/<numero_usuario>', methods=['POST'])
 def resetear_nip(numero_usuario):
     if 'user_type' not in session or session['user_type'] != 'admin':
-        return {'success': False, 'message': 'No autorizado'}, 403
+        return jsonify({'success': False, 'message': 'No autorizado'}), 403
     
     try:
         data = request.get_json()
         nuevo_nip = data.get('nuevo_nip')
         
         if not nuevo_nip or len(nuevo_nip) < 4:
-            return {'success': False, 'message': 'NIP debe tener al menos 4 caracteres'}
+            return jsonify({'success': False, 'message': 'NIP debe tener al menos 4 caracteres'})
         
         conn = sqlite3.connect('credito.db')
         cursor = conn.cursor()
@@ -294,13 +289,19 @@ def resetear_nip(numero_usuario):
             conn.commit()
             conn.close()
             flash(f'NIP del analista {numero_usuario} actualizado exitosamente', 'success')
-            return {'success': True, 'message': 'NIP actualizado'}
+            return jsonify({'success': True, 'message': 'NIP actualizado'})
         else:
             conn.close()
-            return {'success': False, 'message': 'Analista no encontrado'}
+            return jsonify({'success': False, 'message': 'Analista no encontrado'})
             
     except Exception as e:
-        return {'success': False, 'message': str(e)}
+        return jsonify({'success': False, 'message': str(e)})
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Sesión cerrada exitosamente', 'success')
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     init_db()
