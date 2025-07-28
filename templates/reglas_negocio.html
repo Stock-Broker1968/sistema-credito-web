@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Reglas de Negocio - Sistema de Análisis Crediticio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .config-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+    
+    .rule-section {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .rule-input {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .rule-input:focus {
+        background: white;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .impact-indicator {
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+        font-size: 0.9em;
+    }
+    
+    .impact-low { background: #d4edda; color: #155724; }
+    .impact-medium { background: #fff3cd; color: #856404; }
+    .impact-high { background: #f8d7da; color: #721c24; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1">
+                                <i class="fas fa-cogs text-warning me-3"></i>
+                                Configuración de Reglas de Negocio
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Parámetros que definen los criterios de evaluación crediticia
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{{ url_for('panel_admin') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Volver al Panel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuración Principal -->
+    <div class="config-card">
+        <h3><i class="fas fa-sliders-h me-2"></i>Panel de Configuración</h3>
+        <p class="mb-0">
+            Los cambios en estas reglas afectarán inmediatamente todas las nuevas evaluaciones.
+            Se recomienda hacer respaldo antes de modificaciones importantes.
+        </p>
+    </div>
+
+    <form method="POST" class="needs-validation" novalidate>
+        <div class="row">
+            <!-- Criterios de Scoring -->
+            <div class="col-lg-6 mb-4">
+                <div class="rule-section">
+                    <h4 class="mb-4">
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        Criterios de Scoring
+                    </h4>
+                    
+                    <div class="mb-4">
+                        <label for="fico_min" class="form-label fw-bold">
+                            <i class="fas fa-star me-2"></i>FICO Score Mínimo
+                        </label>
+                        <input type="number" class="form-control rule-input" 
+                               id="fico_min" name="fico_min" 
+                               value="{{ reglas.fico_min or 650 }}" 
+                               min="300" max="800" required>
+                        <div class="form-text">
+                            Score mínimo para consideración de aprobación (300-800)
+                        </div>
+                        <div class="impact-indicator impact-high">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Impacto Alto:</strong> Cambiar este valor afectará significativamente las aprobaciones
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="tdsr_max" class="form-label fw-bold">
+                            <i class="fas fa-percentage me-2"></i>TDSR Máximo (%)
+                        </label>
+                        <input type="number" class="form-control rule-input" 
+                               id="tdsr_max" name="tdsr_max" 
+                               value="{{ reglas.tdsr_max or 40 }}" 
+                               min="20" max="60" step="0.1" required>
+                        <div class="form-text">
+                            Total Debt Service Ratio máximo permitido
+                        </div>
+                        <div class="impact-indicator impact-high">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Impacto Alto:</strong> Controla directamente la capacidad de endeudamiento
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parámetros de Producto -->
+            <div class="col-lg-6 mb-4">
+                <div class="rule-section">
+                    <h4 class="mb-4">
+                        <i class="fas fa-dollar-sign text-success me-2"></i>
+                        Parámetros de Producto
+                    </h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="monto_min" class="form-label fw-bold">Monto Mínimo ($)</label>
+                            <input type="number" class="form-control rule-input" 
+                                   id="monto_min" name="monto_min" 
+                                   value="{{ reglas.monto_min or 5000 }}" 
+                                   min="1000" max="50000" step="1000" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="monto_max" class="form-label fw-bold">Monto Máximo ($)</label>
+                            <input type="number" class="form-control rule-input" 
+                                   id="monto_max" name="monto_max" 
+                                   value="{{ reglas.monto_max or 250000 }}" 
+                                   min="50000" max="500000" step="5000" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tasa_min" class="form-label fw-bold">Tasa Mínima (%)</label>
+                            <input type="number" class="form-control rule-input" 
+                                   id="tasa_min" name="tasa_min" 
+                                   value="{{ reglas.tasa_min or 22 }}" 
+                                   min="10" max="30" step="0.1" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tasa_max" class="form-label fw-bold">Tasa Máxima (%)</label>
+                            <input type="number" class="form-control rule-input" 
+                                   id="tasa_max" name="tasa_max" 
+                                   value="{{ reglas.tasa_max or 45 }}" 
+                                   min="30" max="60" step="0.1" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="plazo_max" class="form-label fw-bold">Plazo Máximo (meses)</label>
+                        <input type="number" class="form-control rule-input" 
+                               id="plazo_max" name="plazo_max" 
+                               value="{{ reglas.plazo_max or 18 }}" 
+                               min="6" max="36" required>
+                        <div class="form-text">
+                            Plazo máximo en meses para cualquier crédito
+                        </div>
+                    </div>
+
+                    <div class="impact-indicator impact-medium">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Impacto Medio:</strong> Estos valores definen el rango de productos disponibles
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulador de Impacto -->
+        <div class="rule-section">
+            <h4 class="mb-4">
+                <i class="fas fa-calculator text-info me-2"></i>
+                Simulador de Impacto
+            </h4>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Escenario Conservador</h5>
+                            <p class="text-muted">FICO ≥ 700, TDSR ≤ 25%</p>
+                            <h3 class="text-success" id="sim-conservador">~85%</h3>
+                            <small>Tasa de Aprobación Estimada</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Escenario Moderado</h5>
+                            <p class="text-muted">FICO ≥ 650, TDSR ≤ 35%</p>
+                            <h3 class="text-warning" id="sim-moderado">~60%</h3>
+                            <small>Tasa de Aprobación Estimada</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Escenario Agresivo</h5>
+                            <p class="text-muted">FICO ≥ 600, TDSR ≤ 40%</p>
+                            <h3 class="text-danger" id="sim-agresivo">~40%</h3>
+                            <small>Tasa de Aprobación Estimada</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial de Cambios -->
+        <div class="rule-section">
+            <h4 class="mb-4">
+                <i class="fas fa-history text-secondary me-2"></i>
+                Historial de Cambios Recientes
+            </h4>
+            
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Variable</th>
+                            <th>Valor Anterior</th>
+                            <th>Valor Nuevo</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><small>28/01/2025 14:30</small></td>
+                            <td>FICO Score Mínimo</td>
+                            <td>680</td>
+                            <td>650</td>
+                            <td>Administrador</td>
+                        </tr>
+                        <tr>
+                            <td><small>27/01/2025 09:15</small></td>
+                            <td>TDSR Máximo</td>
+                            <td>35%</td>
+                            <td>40%</td>
+                            <td>Administrador</td>
+                        </tr>
+                        <tr>
+                            <td><small>25/01/2025 16:45</small></td>
+                            <td>Monto Máximo</td>
+                            <td>$200,000</td>
+                            <td>$250,000</td>
+                            <td>Administrador</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="text-center mb-4">
+            <button type="submit" class="btn btn-success btn-lg me-3">
+                <i class="fas fa-save me-2"></i>
+                Guardar Cambios
+            </button>
+            <button type="button" class="btn btn-outline-warning me-3" onclick="restaurarDefecto()">
+                <i class="fas fa-undo me-2"></i>
+                Restaurar por Defecto
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="simularImpacto()">
+                <i class="fas fa-chart-bar me-2"></i>
+                Simular Impacto Completo
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function restaurarDefecto() {
+    if (confirm('¿Está seguro de restaurar todas las reglas a sus valores por defecto?\n\nEsto sobrescribirá la configuración actual.')) {
+        document.getElementById('fico_min').value = 650;
+        document.getElementById('tdsr_max').value = 40;
+        document.getElementById('monto_min').value = 5000;
+        document.getElementById('monto_max').value = 250000;
+        document.getElementById('tasa_min').value = 22;
+        document.getElementById('tasa_max').value = 45;
+        document.getElementById('plazo_max').value = 18;
+        
+        alert('Valores restaurados por defecto. No olvide guardar los cambios.');
+    }
+}
+
+function simularImpacto() {
+    const ficoMin = document.getElementById('fico_min').value;
+    const tdsrMax = document.getElementById('tdsr_max').value;
+    
+    // Simulación básica del impacto
+    let conservador, moderado, agresivo;
+    
+    if (ficoMin <= 650 && tdsrMax >= 35) {
+        conservador = 90;
+        moderado = 70;
+        agresivo = 50;
+    } else if (ficoMin > 650 && tdsrMax < 35) {
+        conservador = 75;
+        moderado = 50;
+        agresivo = 30;
+    } else {
+        conservador = 85;
+        moderado = 60;
+        agresivo = 40;
+    }
+    
+    document.getElementById('sim-conservador').textContent = `~${conservador}%`;
+    document.getElementById('sim-moderado').textContent = `~${moderado}%`;
+    document.getElementById('sim-agresivo').textContent = `~${agresivo}%`;
+    
+    // Mostrar modal con resultados detallados
+    const resultados = `
+        Simulación de Impacto con Configuración Actual:
+        
+        FICO Mínimo: ${ficoMin}
+        TDSR Máximo: ${tdsrMax}%
+        
+        Estimaciones de Aprobación:
+        • Perfiles Conservadores: ${conservador}%
+        • Perfiles Moderados: ${moderado}%
+        • Perfiles Agresivos: ${agresivo}%
+        
+        Impacto Estimado en Cartera:
+        • Incremento en volumen: ${(moderado - 50)}%
+        • Riesgo promedio: ${100 - moderado}%
+        
+        Recomendación: ${moderado > 60 ? 'Configuración balanceada' : 'Configuración conservadora'}
+    `;
+    
+    alert(resultados);
+}
+
+// Validación en tiempo real
+document.querySelectorAll('.rule-input').forEach(input => {
+    input.addEventListener('change', function() {
+        validateRule(this);
+    });
+});
+
+function validateRule(input) {
+    const value = parseFloat(input.value);
+    const min = parseFloat(input.min);
+    const max = parseFloat(input.max);
+    
+    if (value < min || value > max) {
+        input.classList.add('is-invalid');
+        input.classList.remove('is-valid');
+    } else {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-vali
