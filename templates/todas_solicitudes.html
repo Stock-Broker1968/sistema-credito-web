@@ -1,52 +1,676 @@
 {% extends "base.html" %}
 
-{% block title %}Todas las Solicitudes{% endblock %}
+{% block title %}Todas las Solicitudes - Sistema de Análisis Crediticio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .stats-overview {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .status-badge {
+        font-size: 0.8em;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+    }
+    
+    .status-aprobado { background: #d4edda; color: #155724; }
+    .status-rechazado { background: #f8d7da; color: #721c24; }
+    .status-zona_gris { background: #fff3cd; color: #856404; }
+    .status-en_proceso { background: #d1ecf1; color: #0c5460; }
+    
+    .table-actions .btn {
+        margin: 1px;
+        padding: 4px 8px;
+        font-size: 0.8em;
+    }
+    
+    .analista-badge {
+        background: #e9ecef;
+        color: #495057;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        font-weight: bold;
+    }
+    
+    @media (max-width: 768px) {
+        .table-responsive {
+            font-size: 0.85em;
+        }
+        
+        .filter-card .row {
+            gap: 10px;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="card shadow">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h4><i class="fas fa-database me-2"></i>Todas las Solicitudes</h4>
-                <a href="{{ url_for('panel_admin') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-arrow-left me-2"></i>Volver al Panel
-                </a>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>No. Solicitud</th>
-                                <th>Fecha</th>
-                                <th>Analista</th>
-                                <th>Cliente</th>
-                                <th>Dictamen</th>
-                                <th>Monto</th>
-                                <th>Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for solicitud in solicitudes %}
-                            <tr>
-                                <td><strong>{{ solicitud[0] }}</strong></td>
-                                <td>{{ solicitud[1][:16] }}</td>
-                                <td>E-{{ "%03d"|format(solicitud[2]) }}</td>
-                                <td>{{ solicitud[3] }}</td>
-                                <td>
-                                    <span class="badge bg-{{ 'success' if solicitud[4] == 'APROBADO' else 'danger' if solicitud[4] == 'RECHAZADO' else 'warning' }}">
-                                        {{ solicitud[4] }}
-                                    </span>
-                                </td>
-                                <td>${{ "%.2f"|format(solicitud[5]) if solicitud[5] else '0.00' }}</td>
-                                <td>{{ solicitud[6] }}/450</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1">
+                                <i class="fas fa-folder-open text-primary me-3"></i>
+                                Todas las Solicitudes del Sistema
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Vista administrativa completa de solicitudes crediticias
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button onclick="exportarDatos()" class="btn btn-success me-2">
+                                <i class="fas fa-download me-2"></i>Exportar
+                            </button>
+                            <a href="{{ url_for('panel_admin') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Panel Admin
+                            </a>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Generales -->
+    <div class="stats-overview">
+        <div class="row text-center">
+            <div class="col-md-2 col-6 mb-3 mb-md-0">
+                <h3 class="text-primary">{{ solicitudes.total }}</h3>
+                <p class="mb-0 fw-bold">Total</p>
+            </div>
+            <div class="col-md-2 col-6 mb-3 mb-md-0">
+                <h3 class="text-success">{{ solicitudes.items | selectattr('decision', 'equalto', 'aprobado') | list | length }}</h3>
+                <p class="mb-0 fw-bold">Aprobadas</p>
+            </div>
+            <div class="col-md-2 col-6 mb-3 mb-md-0">
+                <h3 class="text-danger">{{ solicitudes.items | selectattr('decision', 'equalto', 'rechazado') | list | length }}</h3>
+                <p class="mb-0 fw-bold">Rechazadas</p>
+            </div>
+            <div class="col-md-2 col-6 mb-3 mb-md-0">
+                <h3 class="text-warning">{{ solicitudes.items | selectattr('decision', 'equalto', 'zona_gris') | list | length }}</h3>
+                <p class="mb-0 fw-bold">Zona Gris</p>
+            </div>
+            <div class="col-md-2 col-6 mb-3 mb-md-0">
+                <h3 class="text-info">{{ solicitudes.items | selectattr('decision', 'equalto', None) | list | length }}</h3>
+                <p class="mb-0 fw-bold">Pendientes</p>
+            </div>
+            <div class="col-md-2 col-6">
+                <h3 class="text-secondary">
+                    {% if solicitudes.total > 0 %}
+                        {{ "%.1f"|format((solicitudes.items | selectattr('decision', 'equalto', 'aprobado') | list | length / solicitudes.total) * 100) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </h3>
+                <p class="mb-0 fw-bold">Tasa Aprobación</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros Avanzados -->
+    <div class="filter-card">
+        <form method="GET" class="row align-items-end">
+            <div class="col-md-2 mb-2">
+                <label class="form-label fw-bold text-white">Estado:</label>
+                <select name="decision" class="form-control form-control-custom">
+                    <option value="">Todos</option>
+                    <option value="aprobado" {{ 'selected' if filtro_decision == 'aprobado' }}>Aprobados</option>
+                    <option value="rechazado" {{ 'selected' if filtro_decision == 'rechazado' }}>Rechazados</option>
+                    <option value="zona_gris" {{ 'selected' if filtro_decision == 'zona_gris' }}>Zona Gris</option>
+                    <option value="en_proceso" {{ 'selected' if filtro_decision == 'en_proceso' }}>En Proceso</option>
+                </select>
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="form-label fw-bold text-white">Analista:</label>
+                <select name="analista" class="form-control form-control-custom">
+                    <option value="">Todos</option>
+                    {% for analista in analistas %}
+                    <option value="{{ analista.id }}" {{ 'selected' if filtro_analista|string == analista.id|string }}>
+                        {{ analista.codigo }} - {{ analista.nombre[:20] }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="form-label fw-bold text-white">Desde:</label>
+                <input type="date" name="fecha_desde" class="form-control form-control-custom" 
+                       value="{{ request.args.get('fecha_desde', '') }}">
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="form-label fw-bold text-white">Hasta:</label>
+                <input type="date" name="fecha_hasta" class="form-control form-control-custom" 
+                       value="{{ request.args.get('fecha_hasta', '') }}">
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="form-label fw-bold text-white">Monto Min:</label>
+                <input type="number" name="monto_min" class="form-control form-control-custom" 
+                       placeholder="$0" value="{{ request.args.get('monto_min', '') }}">
+            </div>
+            <div class="col-md-2 mb-2">
+                <button type="submit" class="btn btn-light w-100">
+                    <i class="fas fa-filter me-2"></i>Filtrar
+                </button>
+            </div>
+        </form>
+        
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <button class="btn btn-outline-light btn-sm me-2" onclick="limpiarFiltros()">
+                    <i class="fas fa-times me-1"></i>Limpiar Filtros
+                </button>
+                <button class="btn btn-outline-light btn-sm" onclick="filtrosRapidos()">
+                    <i class="fas fa-bolt me-1"></i>Filtros Rápidos
+                </button>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-white-50">
+                    Mostrando {{ solicitudes.items|length }} de {{ solicitudes.total }} solicitudes
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Solicitudes -->
+    <div class="card card-custom">
+        <div class="card-header bg-transparent">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Lista Completa de Solicitudes
+                    </h5>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="busquedaRapida()">
+                        <i class="fas fa-search me-1"></i>Buscar
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="estadisticasRapidas()">
+                        <i class="fas fa-chart-pie me-1"></i>Stats
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-body p-0">
+            {% if solicitudes.items %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="tablaSolicitudes">
+                    <thead class="table-light">
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                            </th>
+                            <th onclick="ordenarPor('numero')">
+                                Número <i class="fas fa-sort"></i>
+                            </th>
+                            <th>Cliente</th>
+                            <th>Analista</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>FICO</th>
+                            <th>TDSR</th>
+                            <th>Fecha</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for solicitud in solicitudes.items %}
+                        <tr data-solicitud-id="{{ solicitud.id }}">
+                            <td>
+                                <input type="checkbox" class="solicitud-checkbox" value="{{ solicitud.id }}">
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ solicitud.numero }}</span>
+                            </td>
+                            <td>
+                                {% if solicitud.cliente %}
+                                    <strong>{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }}</strong><br>
+                                    <small class="text-muted">{{ solicitud.cliente.rfc }}</small>
+                                {% else %}
+                                    <em class="text-muted">Sin cliente</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="analista-badge">{{ solicitud.analista.codigo }}</span><br>
+                                <small class="text-muted">{{ solicitud.analista.nombre[:20] }}...</small>
+                            </td>
+                            <td>
+                                {% if solicitud.monto_solicitado %}
+                                    <strong>${{ "{:,.0f}".format(solicitud.monto_solicitado) }}</strong>
+                                    {% if solicitud.monto_aprobado %}
+                                        <br><small class="text-success">Aprob: ${{ "{:,.0f}".format(solicitud.monto_aprobado) }}</small>
+                                    {% endif %}
+                                {% else %}
+                                    <em class="text-muted">No definido</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if solicitud.decision == 'aprobado' %}
+                                    <span class="status-badge status-aprobado">
+                                        <i class="fas fa-check me-1"></i>Aprobado
+                                    </span>
+                                {% elif solicitud.decision == 'rechazado' %}
+                                    <span class="status-badge status-rechazado">
+                                        <i class="fas fa-times me-1"></i>Rechazado
+                                    </span>
+                                {% elif solicitud.decision == 'zona_gris' %}
+                                    <span class="status-badge status-zona_gris">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Zona Gris
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge status-en_proceso">
+                                        <i class="fas fa-clock me-1"></i>En Proceso
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if solicitud.cliente %}
+                                    {% if solicitud.cliente.fico_score >= 700 %}
+                                        <span class="badge bg-success">{{ solicitud.cliente.fico_score }}</span>
+                                    {% elif solicitud.cliente.fico_score >= 650 %}
+                                        <span class="badge bg-warning">{{ solicitud.cliente.fico_score }}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ solicitud.cliente.fico_score }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <em class="text-muted">N/A</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if solicitud.cliente %}
+                                    {% if solicitud.cliente.tdsr <= 30 %}
+                                        <span class="badge bg-success">{{ solicitud.cliente.tdsr }}%</span>
+                                    {% elif solicitud.cliente.tdsr <= 35 %}
+                                        <span class="badge bg-warning">{{ solicitud.cliente.tdsr }}%</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ solicitud.cliente.tdsr }}%</span>
+                                    {% endif %}
+                                {% else %}
+                                    <em class="text-muted">N/A</em>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>
+                                    {{ solicitud.fecha_solicitud.strftime('%d/%m/%Y') }}<br>
+                                    <span class="text-muted">{{ solicitud.fecha_solicitud.strftime('%H:%M') }}</span>
+                                </small>
+                            </td>
+                            <td>
+                                <div class="table-actions">
+                                    <a href="{{ url_for('ver_solicitud', id=solicitud.id) }}" 
+                                       class="btn btn-outline-info btn-sm" 
+                                       title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    {% if solicitud.decision %}
+                                        <a href="{{ url_for('resultado_solicitud', id=solicitud.id) }}" 
+                                           class="btn btn-outline-success btn-sm" 
+                                           title="Ver resultado">
+                                            <i class="fas fa-file-alt"></i>
+                                        </a>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-outline-secondary btn-sm" 
+                                            onclick="verHistorial({{ solicitud.id }})" 
+                                            title="Ver historial">
+                                        <i class="fas fa-history"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación -->
+            {% if solicitudes.pages > 1 %}
+            <div class="card-footer bg-transparent">
+                <nav aria-label="Paginación de solicitudes">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if solicitudes.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('todas_solicitudes', page=solicitudes.prev_num, **request.args) }}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in solicitudes.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != solicitudes.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('todas_solicitudes', page=page_num, **request.args) }}">
+                                            {{ page_num }}
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">…</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if solicitudes.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('todas_solicitudes', page=solicitudes.next_num, **request.args) }}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <!-- Estado vacío -->
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-4"></i>
+                <h4 class="text-muted">No hay solicitudes</h4>
+                <p class="text-muted mb-4">
+                    {% if request.args %}
+                        No se encontraron solicitudes con los filtros aplicados.
+                    {% else %}
+                        No hay solicitudes registradas en el sistema.
+                    {% endif %}
+                </p>
+                <button onclick="limpiarFiltros()" class="btn btn-primary">
+                    <i class="fas fa-filter me-2"></i>Limpiar Filtros
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Acciones Masivas -->
+    {% if solicitudes.items %}
+    <div class="card card-custom mt-3" id="accionesMasivas" style="display: none;">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h6 class="mb-0">
+                        <i class="fas fa-tasks me-2"></i>
+                        Acciones Masivas (<span id="selectedCount">0</span> seleccionadas)
+                    </h6>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="exportarSeleccionadas()">
+                        <i class="fas fa-download me-1"></i>Exportar
+                    </button>
+                    <button class="btn btn-outline-info btn-sm me-2" onclick="generarReporteMasivo()">
+                        <i class="fas fa-chart-bar me-1"></i>Reporte
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="limpiarSeleccion()">
+                        <i class="fas fa-times me-1"></i>Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal para Historial -->
+<div class="modal fade" id="historialModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-history me-2"></i>
+                    Historial de Solicitud
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="historialContent">
+                <!-- Se llena via JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+// Variables globales
+let solicitudesSeleccionadas = [];
+
+function limpiarFiltros() {
+    window.location.href = '{{ url_for("todas_solicitudes") }}';
+}
+
+function filtrosRapidos() {
+    const opciones = [
+        { texto: 'Solicitudes de Hoy', filtro: '?fecha_desde=' + new Date().toISOString().split('T')[0] },
+        { texto: 'Solicitudes Pendientes', filtro: '?decision=en_proceso' },
+        { texto: 'Aprobadas Este Mes', filtro: '?decision=aprobado&fecha_desde=' + new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0] },
+        { texto: 'Zona Gris', filtro: '?decision=zona_gris' },
+        { texto: 'Montos Altos (>$100k)', filtro: '?monto_min=100000' }
+    ];
+    
+    let mensaje = 'Seleccione un filtro rápido:\n\n';
+    opciones.forEach((opcion, index) => {
+        mensaje += `${index + 1}. ${opcion.texto}\n`;
+    });
+    
+    const seleccion = prompt(mensaje + '\nIngrese el número (1-5):');
+    if (seleccion && seleccion >= 1 && seleccion <= 5) {
+        window.location.href = '{{ url_for("todas_solicitudes") }}' + opciones[seleccion - 1].filtro;
+    }
+}
+
+function ordenarPor(campo) {
+    alert(`Ordenar por ${campo} - Funcionalidad en desarrollo`);
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.solicitud-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    actualizarSeleccion();
+}
+
+function actualizarSeleccion() {
+    const checkboxes = document.querySelectorAll('.solicitud-checkbox:checked');
+    const count = checkboxes.length;
+    
+    document.getElementById('selectedCount').textContent = count;
+    document.getElementById('accionesMasivas').style.display = count > 0 ? 'block' : 'none';
+    
+    solicitudesSeleccionadas = Array.from(checkboxes).map(cb => cb.value);
+}
+
+function limpiarSeleccion() {
+    document.querySelectorAll('.solicitud-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('selectAll').checked = false;
+    actualizarSeleccion();
+}
+
+function verHistorial(solicitudId) {
+    const historial = `
+        <div class="timeline">
+            <div class="timeline-item">
+                <strong>Solicitud Creada</strong><br>
+                <small class="text-muted">28/01/2025 09:30 - Analista E001</small>
+                <p>Solicitud registrada en el sistema</p>
+            </div>
+            <div class="timeline-item">
+                <strong>Documentos Validados</strong><br>
+                <small class="text-muted">28/01/2025 10:15 - Analista E001</small>
+                <p>Todos los documentos validados correctamente</p>
+            </div>
+            <div class="timeline-item">
+                <strong>Scoring Calculado</strong><br>
+                <small class="text-muted">28/01/2025 10:20 - Sistema</small>
+                <p>Score total: 340/450 puntos</p>
+            </div>
+            <div class="timeline-item">
+                <strong>Decisión Tomada</strong><br>
+                <small class="text-muted">28/01/2025 10:25 - Analista E001</small>
+                <p>Solicitud aprobada por $45,000</p>
+            </div>
+        </div>
+        
+        <style>
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007bff;
+            border: 2px solid white;
+        }
+        </style>
+    `;
+    
+    document.getElementById('historialContent').innerHTML = historial;
+    new bootstrap.Modal(document.getElementById('historialModal')).show();
+}
+
+function exportarDatos() {
+    const formatos = ['Excel (.xlsx)', 'CSV (.csv)', 'PDF (.pdf)', 'JSON (.json)'];
+    let mensaje = 'Seleccione el formato de exportación:\n\n';
+    formatos.forEach((formato, index) => {
+        mensaje += `${index + 1}. ${formato}\n`;
+    });
+    
+    const seleccion = prompt(mensaje + '\nIngrese el número (1-4):');
+    if (seleccion && seleccion >= 1 && seleccion <= 4) {
+        const formato = ['xlsx', 'csv', 'pdf', 'json'][seleccion - 1];
+        alert(`Exportando datos en formato ${formato.toUpperCase()}...`);
+    }
+}
+
+function exportarSeleccionadas() {
+    if (solicitudesSeleccionadas.length === 0) {
+        alert('Seleccione al menos una solicitud para exportar.');
+        return;
+    }
+    
+    alert(`Exportando ${solicitudesSeleccionadas.length} solicitudes seleccionadas...`);
+}
+
+function generarReporteMasivo() {
+    if (solicitudesSeleccionadas.length === 0) {
+        alert('Seleccione al menos una solicitud para generar el reporte.');
+        return;
+    }
+    
+    if (confirm(`¿Generar reporte consolidado de ${solicitudesSeleccionadas.length} solicitudes?`)) {
+        alert('Generando reporte consolidado...');
+    }
+}
+
+function busquedaRapida() {
+    const termino = prompt('Buscar por número, cliente, RFC o analista:');
+    if (termino) {
+        const rows = document.querySelectorAll('#tablaSolicitudes tbody tr');
+        let encontrados = 0;
+        
+        rows.forEach(row => {
+            const texto = row.textContent.toLowerCase();
+            if (texto.includes(termino.toLowerCase())) {
+                row.style.display = '';
+                row.style.backgroundColor = '#fff3cd';
+                encontrados++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        if (encontrados === 0) {
+            alert(`No se encontraron resultados para: "${termino}"`);
+            rows.forEach(row => {
+                row.style.display = '';
+                row.style.backgroundColor = '';
+            });
+        } else {
+            alert(`Se encontraron ${encontrados} resultados para: "${termino}"`);
+        }
+    }
+}
+
+function estadisticasRapidas() {
+    const filas = document.querySelectorAll('#tablaSolicitudes tbody tr:not([style*="display: none"])');
+    const stats = {
+        total: filas.length,
+        aprobadas: 0,
+        rechazadas: 0,
+        pendientes: 0,
+        montoTotal: 0
+    };
+    
+    filas.forEach(fila => {
+        const estado = fila.querySelector('.status-badge').textContent.trim();
+        
+        if (estado.includes('Aprobado')) stats.aprobadas++;
+        else if (estado.includes('Rechazado')) stats.rechazadas++;
+        else stats.pendientes++;
+        
+        const montoCell = fila.cells[4].textContent;
+        const montoMatch = montoCell.match(/\$[\d,]+/);
+        if (montoMatch) {
+            const monto = parseFloat(montoMatch[0].replace(/[$,]/g, ''));
+            if (!isNaN(monto)) stats.montoTotal += monto;
+        }
+    });
+    
+    const tasaAprobacion = stats.total > 0 ? ((stats.aprobadas / stats.total) * 100).toFixed(1) : 0;
+    
+    alert(`Estadísticas de la vista actual:
+
+SOLICITUDES:
+• Total: ${stats.total}
+• Aprobadas: ${stats.aprobadas} (${tasaAprobacion}%)
+•
