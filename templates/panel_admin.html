@@ -28,6 +28,20 @@
         .btn-sm {
             border-radius: 20px;
         }
+        .nip-hidden {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .nip-visible {
+            font-family: monospace;
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #ffeaa7;
+        }
     </style>
 </head>
 <body>
@@ -108,9 +122,10 @@
                     <table class="table table-hover">
                         <thead class="table-dark">
                             <tr>
-                                <th>Número Usuario</th>
+                                <th>Usuario</th>
                                 <th>Nombre Completo</th>
                                 <th>RFC</th>
+                                <th>NIP</th>
                                 <th>Fecha Registro</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
@@ -129,25 +144,32 @@
                                     <code>{{ analista[4] }}</code>
                                 </td>
                                 <td>
-                                    {{ analista[5][:19] if analista[5] else 'N/A' }}
+                                    <span class="nip-hidden" 
+                                          onclick="toggleNIP(this, '{{ analista[5][:8] }}')" 
+                                          title="Haz clic para mostrar/ocultar NIP">
+                                        ••••••••
+                                    </span>
                                 </td>
                                 <td>
-                                    {% if analista[6] == 'pendiente' %}
+                                    {{ analista[6][:19] if analista[6] else 'N/A' }}
+                                </td>
+                                <td>
+                                    {% if analista[7] == 'pendiente' %}
                                         <span class="badge bg-warning">
                                             <i class="fas fa-clock"></i> Pendiente
                                         </span>
-                                    {% elif analista[6] == 'aprobado' %}
+                                    {% elif analista[7] == 'aprobado' %}
                                         <span class="badge bg-success">
                                             <i class="fas fa-check-circle"></i> Aprobado
                                         </span>
-                                    {% elif analista[6] == 'rechazado' %}
+                                    {% elif analista[7] == 'rechazado' %}
                                         <span class="badge bg-danger">
                                             <i class="fas fa-times-circle"></i> Rechazado
                                         </span>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if analista[6] == 'pendiente' %}
+                                    {% if analista[7] == 'pendiente' %}
                                         <div class="btn-group" role="group">
                                             <a href="{{ url_for('evaluar_analista', numero_usuario=analista[0], accion='aprobar') }}" 
                                                class="btn btn-success btn-sm"
@@ -161,15 +183,18 @@
                                             </a>
                                         </div>
                                     {% else %}
-                                        <span class="text-muted">
-                                            <i class="fas fa-check"></i> Evaluado
-                                        </span>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-warning btn-sm" 
+                                                    onclick="resetearNIP('{{ analista[0] }}', '{{ analista[3] }} {{ analista[1] }}')">
+                                                <i class="fas fa-key"></i> Resetear NIP
+                                            </button>
+                                        </div>
                                     {% endif %}
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="6" class="text-center text-muted">
+                                <td colspan="7" class="text-center text-muted">
                                     <i class="fas fa-inbox"></i> No hay analistas registrados
                                 </td>
                             </tr>
@@ -189,8 +214,158 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <h6>Proceso de Evaluación:</h6>
                                 <ul class="list-unstyled">
-                                    <li><i class="fas fa-circle text-warning"></i> Los nuevos analistas aparecen como <strong>Pendientes</strong></li>
-                                    <li><i class="fas fa-circle text-success"></i> Al aprobar, pue
+                                    <li><i class="fas fa-circle text-warning"></i> Nuevos analistas: <strong>Pendientes</strong></li>
+                                    <li><i class="fas fa-circle text-success"></i> Al aprobar: pueden acceder</li>
+                                    <li><i class="fas fa-circle text-danger"></i> Al rechazar: sin acceso</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Gestión de NIPs:</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-eye"></i> Haz clic para ver NIPs</li>
+                                    <li><i class="fas fa-key"></i> Botón "Resetear NIP" disponible</li>
+                                    <li><i class="fas fa-shield-alt"></i> NIPs encriptados en base de datos</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <h6>Formato de Usuarios:</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-hashtag"></i> Formato: <strong>E-XXX</strong></li>
+                                    <li><i class="fas fa-sort-numeric-up"></i> Asignación automática</li>
+                                    <li><i class="fas fa-lock"></i> Único por analista</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para resetear NIP -->
+    <div class="modal fade" id="resetNIPModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key"></i> Resetear NIP
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Resetear NIP para: <strong id="nombreAnalista"></strong></p>
+                    <p>Usuario: <strong id="usuarioAnalista"></strong></p>
+                    
+                    <div class="mb-3">
+                        <label for="nuevoNIP" class="form-label">Nuevo NIP:</label>
+                        <input type="password" class="form-control" id="nuevoNIP" 
+                               placeholder="Ingresa el nuevo NIP" minlength="4">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirmarNIP" class="form-label">Confirmar NIP:</label>
+                        <input type="password" class="form-control" id="confirmarNIP" 
+                               placeholder="Confirma el nuevo NIP" minlength="4">
+                    </div>
+                    
+                    <div id="nipError" class="text-danger" style="display: none;">
+                        Los NIPs no coinciden
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="confirmarResetNIP()">
+                        <i class="fas fa-key"></i> Resetear NIP
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let usuarioActual = '';
+
+        function toggleNIP(element, nipHash) {
+            if (element.textContent === '••••••••') {
+                element.textContent = nipHash;
+                element.className = 'nip-visible';
+                element.title = 'Haz clic para ocultar NIP (Hash encriptado)';
+            } else {
+                element.textContent = '••••••••';
+                element.className = 'nip-hidden';
+                element.title = 'Haz clic para mostrar NIP';
+            }
+        }
+
+        function resetearNIP(numeroUsuario, nombreCompleto) {
+            usuarioActual = numeroUsuario;
+            document.getElementById('usuarioAnalista').textContent = numeroUsuario;
+            document.getElementById('nombreAnalista').textContent = nombreCompleto;
+            document.getElementById('nuevoNIP').value = '';
+            document.getElementById('confirmarNIP').value = '';
+            document.getElementById('nipError').style.display = 'none';
+            
+            const modal = new bootstrap.Modal(document.getElementById('resetNIPModal'));
+            modal.show();
+        }
+
+        function confirmarResetNIP() {
+            const nuevoNIP = document.getElementById('nuevoNIP').value;
+            const confirmarNIP = document.getElementById('confirmarNIP').value;
+            const errorDiv = document.getElementById('nipError');
+
+            if (nuevoNIP !== confirmarNIP) {
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (nuevoNIP.length < 4) {
+                errorDiv.textContent = 'El NIP debe tener al menos 4 caracteres';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Enviar solicitud de reset
+            fetch(`/resetear_nip/${usuarioActual}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ nuevo_nip: nuevoNIP })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // Recargar página para mostrar mensaje de éxito
+                } else {
+                    alert('Error al resetear NIP: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error de conexión');
+            });
+        }
+
+        // Validar coincidencia de NIPs en tiempo real
+        document.getElementById('confirmarNIP').addEventListener('input', function() {
+            const nuevoNIP = document.getElementById('nuevoNIP').value;
+            const confirmarNIP = this.value;
+            const errorDiv = document.getElementById('nipError');
+
+            if (confirmarNIP && nuevoNIP !== confirmarNIP) {
+                errorDiv.textContent = 'Los NIPs no coinciden';
+                errorDiv.style.display = 'block';
+            } else {
+                errorDiv.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
