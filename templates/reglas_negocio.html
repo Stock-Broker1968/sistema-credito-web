@@ -376,4 +376,213 @@ function validateRule(input) {
         input.classList.remove('is-valid');
     } else {
         input.classList.remove('is-invalid');
-        input.classList.add('is-vali
+        input.classList.add('is-valid');
+    }
+    
+    // Actualizar simulación automáticamente
+    updateSimulation();
+}
+
+function updateSimulation() {
+    const ficoMin = parseFloat(document.getElementById('fico_min').value) || 650;
+    const tdsrMax = parseFloat(document.getElementById('tdsr_max').value) || 40;
+    
+    // Lógica de simulación mejorada
+    let conservador, moderado, agresivo;
+    
+    // Calcular impacto basado en configuración
+    if (ficoMin <= 650 && tdsrMax >= 35) {
+        conservador = Math.min(95, 85 + (tdsrMax - 35) * 2);
+        moderado = Math.min(85, 65 + (tdsrMax - 35) * 3);
+        agresivo = Math.min(70, 45 + (tdsrMax - 35) * 4);
+    } else if (ficoMin > 700 && tdsrMax < 30) {
+        conservador = Math.max(60, 85 - (ficoMin - 650) * 0.2);
+        moderado = Math.max(40, 65 - (ficoMin - 650) * 0.3);
+        agresivo = Math.max(25, 45 - (ficoMin - 650) * 0.4);
+    } else {
+        // Configuración balanceada
+        conservador = 85;
+        moderado = 60;
+        agresivo = 40;
+    }
+    
+    // Actualizar valores en la interfaz
+    document.getElementById('sim-conservador').textContent = `~${Math.round(conservador)}%`;
+    document.getElementById('sim-moderado').textContent = `~${Math.round(moderado)}%`;
+    document.getElementById('sim-agresivo').textContent = `~${Math.round(agresivo)}%`;
+    
+    // Cambiar colores según el riesgo
+    updateRiskColors(conservador, moderado, agresivo);
+}
+
+function updateRiskColors(conservador, moderado, agresivo) {
+    const conservadorEl = document.getElementById('sim-conservador');
+    const moderadoEl = document.getElementById('sim-moderado');
+    const agresivoEl = document.getElementById('sim-agresivo');
+    
+    // Conservador
+    if (conservador >= 80) {
+        conservadorEl.className = 'text-success';
+    } else if (conservador >= 60) {
+        conservadorEl.className = 'text-warning';
+    } else {
+        conservadorEl.className = 'text-danger';
+    }
+    
+    // Moderado
+    if (moderado >= 60) {
+        moderadoEl.className = 'text-success';
+    } else if (moderado >= 40) {
+        moderadoEl.className = 'text-warning';
+    } else {
+        moderadoEl.className = 'text-danger';
+    }
+    
+    // Agresivo
+    if (agresivo >= 40) {
+        agresivoEl.className = 'text-success';
+    } else if (agresivo >= 25) {
+        agresivoEl.className = 'text-warning';
+    } else {
+        agresivoEl.className = 'text-danger';
+    }
+}
+
+// Validación cruzada de valores
+function validateCrossRules() {
+    const ficoMin = parseFloat(document.getElementById('fico_min').value);
+    const tdsrMax = parseFloat(document.getElementById('tdsr_max').value);
+    const montoMin = parseFloat(document.getElementById('monto_min').value);
+    const montoMax = parseFloat(document.getElementById('monto_max').value);
+    const tasaMin = parseFloat(document.getElementById('tasa_min').value);
+    const tasaMax = parseFloat(document.getElementById('tasa_max').value);
+    
+    let warnings = [];
+    
+    // Validaciones lógicas
+    if (montoMin >= montoMax) {
+        warnings.push('El monto mínimo debe ser menor al monto máximo');
+    }
+    
+    if (tasaMin >= tasaMax) {
+        warnings.push('La tasa mínima debe ser menor a la tasa máxima');
+    }
+    
+    if (ficoMin > 750) {
+        warnings.push('FICO Score mínimo muy alto podría rechazar muchos clientes');
+    }
+    
+    if (tdsrMax < 25) {
+        warnings.push('TDSR máximo muy bajo podría ser demasiado restrictivo');
+    }
+    
+    if (tdsrMax > 50) {
+        warnings.push('TDSR máximo muy alto aumenta significativamente el riesgo');
+    }
+    
+    // Mostrar advertencias si las hay
+    if (warnings.length > 0) {
+        const warningDiv = document.getElementById('validationWarnings') || createWarningDiv();
+        warningDiv.innerHTML = `
+            <div class="alert alert-warning">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>Advertencias de Configuración:</h6>
+                <ul class="mb-0">
+                    ${warnings.map(w => `<li>${w}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+        warningDiv.style.display = 'block';
+    } else {
+        const warningDiv = document.getElementById('validationWarnings');
+        if (warningDiv) {
+            warningDiv.style.display = 'none';
+        }
+    }
+}
+
+function createWarningDiv() {
+    const div = document.createElement('div');
+    div.id = 'validationWarnings';
+    div.style.display = 'none';
+    
+    const form = document.querySelector('form');
+    form.insertBefore(div, form.querySelector('.text-center'));
+    
+    return div;
+}
+
+// Confirmación antes de guardar
+document.querySelector('form').addEventListener('submit', function(e) {
+    const confirmMessage = `¿Está seguro de guardar estos cambios en las reglas de negocio?
+
+Los nuevos valores son:
+• FICO Score Mínimo: ${document.getElementById('fico_min').value}
+• TDSR Máximo: ${document.getElementById('tdsr_max').value}%
+• Monto: ${document.getElementById('monto_min').value} - ${document.getElementById('monto_max').value}
+• Tasa: ${document.getElementById('tasa_min').value}% - ${document.getElementById('tasa_max').value}%
+• Plazo Máximo: ${document.getElementById('plazo_max').value} meses
+
+Estos cambios afectarán inmediatamente todas las nuevas evaluaciones.`;
+
+    if (!confirm(confirmMessage)) {
+        e.preventDefault();
+    }
+});
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', function() {
+    // Actualizar simulación inicial
+    updateSimulation();
+    
+    // Crear div de advertencias
+    createWarningDiv();
+    
+    // Validar reglas cruzadas
+    validateCrossRules();
+    
+    // Agregar listeners para validación en tiempo real
+    document.querySelectorAll('.rule-input').forEach(input => {
+        input.addEventListener('input', function() {
+            setTimeout(() => {
+                validateCrossRules();
+                updateSimulation();
+            }, 100);
+        });
+    });
+});
+
+// Función para exportar configuración
+function exportarConfiguracion() {
+    const config = {
+        fico_min: document.getElementById('fico_min').value,
+        tdsr_max: document.getElementById('tdsr_max').value,
+        monto_min: document.getElementById('monto_min').value,
+        monto_max: document.getElementById('monto_max').value,
+        tasa_min: document.getElementById('tasa_min').value,
+        tasa_max: document.getElementById('tasa_max').value,
+        plazo_max: document.getElementById('plazo_max').value,
+        fecha_exportacion: new Date().toISOString()
+    };
+    
+    const dataStr = JSON.stringify(config, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `reglas_negocio_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+}
+
+// Agregar botón de exportar
+document.addEventListener('DOMContentLoaded', function() {
+    const exportBtn = document.createElement('button');
+    exportBtn.type = 'button';
+    exportBtn.className = 'btn btn-outline-secondary ms-2';
+    exportBtn.innerHTML = '<i class="fas fa-download me-2"></i>Exportar Configuración';
+    exportBtn.onclick = exportarConfiguracion;
+    
+    const buttonContainer = document.querySelector('.text-center');
+    buttonContainer.appendChild(exportBtn);
+});
+</script>
+{% endblock %}
