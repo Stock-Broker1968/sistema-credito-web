@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Analistas - Sistema de Análisis Crediticio{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1">
+                                <i class="fas fa-users text-primary me-3"></i>
+                                Gestión de Analistas
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Administración de usuarios del sistema
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{{ url_for('panel_admin') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Volver al Panel
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Analistas -->
+    <div class="card card-custom">
+        <div class="card-header bg-transparent">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>
+                Todos los Analistas ({{ analistas|length }})
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if analistas %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre Completo</th>
+                            <th>RFC</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Fecha Registro</th>
+                            <th>Solicitudes</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for analista in analistas %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">{{ analista.codigo }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ analista.nombre }}</strong>
+                            </td>
+                            <td>
+                                <code>{{ analista.rfc }}</code>
+                            </td>
+                            <td>
+                                {{ analista.telefono }}
+                            </td>
+                            <td>
+                                {% if analista.aprobado_rh and analista.activo %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Activo
+                                    </span>
+                                {% elif not analista.aprobado_rh %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock me-1"></i>Pendiente
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times me-1"></i>Inactivo
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ analista.fecha_registro.strftime('%d/%m/%Y %H:%M') }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">{{ analista.solicitudes|length }}</span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    {% if not analista.aprobado_rh %}
+                                        <a href="{{ url_for('aprobar_analista', id=analista.id) }}" 
+                                           class="btn btn-success" 
+                                           onclick="return confirm('¿Aprobar analista {{ analista.codigo }}?')"
+                                           title="Aprobar">
+                                            <i class="fas fa-check"></i>
+                                        </a>
+                                        <a href="{{ url_for('rechazar_analista', id=analista.id) }}" 
+                                           class="btn btn-danger" 
+                                           onclick="return confirm('¿Rechazar analista {{ analista.codigo }}?')"
+                                           title="Rechazar">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                    {% else %}
+                                        <button class="btn btn-outline-info" 
+                                                onclick="verDetalles({{ analista.id }})"
+                                                title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-warning" 
+                                                onclick="resetearNIP({{ analista.id }})"
+                                                title="Resetear NIP">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                        {% if analista.activo %}
+                                            <button class="btn btn-outline-secondary" 
+                                                    onclick="desactivar({{ analista.id }})"
+                                                    title="Desactivar">
+                                                <i class="fas fa-pause"></i>
+                                            </button>
+                                        {% else %}
+                                            <button class="btn btn-outline-success" 
+                                                    onclick="activar({{ analista.id }})"
+                                                    title="Activar">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-users fa-4x text-muted mb-4"></i>
+                <h4 class="text-muted">No hay analistas registrados</h4>
+                <p class="text-muted">Los analistas aparecerán aquí una vez que se registren en el sistema.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Detalles del Analista -->
+<div class="modal fade" id="detallesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user me-2"></i>
+                    Detalles del Analista
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detallesContent">
+                <!-- Se llena via JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function verDetalles(analistaId) {
+    // Simular obtención de detalles del analista
+    const content = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Información Personal</h6>
+                <p><strong>Código:</strong> E001</p>
+                <p><strong>Nombre:</strong> Juan Pérez Analista</p>
+                <p><strong>RFC:</strong> PEJA850101ABC</p>
+                <p><strong>Teléfono:</strong> 5551234567</p>
+            </div>
+            <div class="col-md-6">
+                <h6>Estadísticas</h6>
+                <p><strong>Solicitudes Procesadas:</strong> 15</p>
+                <p><strong>Aprobadas:</strong> 8 (53%)</p>
+                <p><strong>Rechazadas:</strong> 5 (33%)</p>
+                <p><strong>Zona Gris:</strong> 2 (14%)</p>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-12">
+                <h6>Actividad Reciente</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success me-2"></i>Solicitud S-00015 aprobada - Hace 2 horas</li>
+                    <li><i class="fas fa-times text-danger me-2"></i>Solicitud S-00014 rechazada - Hace 1 día</li>
+                    <li><i class="fas fa-plus text-info me-2"></i>Solicitud S-00013 creada - Hace 2 días</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('detallesContent').innerHTML = content;
+    new bootstrap.Modal(document.getElementById('detallesModal')).show();
+}
+
+function resetearNIP(analistaId) {
+    if (confirm('¿Está seguro de resetear el NIP de este analista?\n\nSe generará un nuevo NIP automáticamente.')) {
+        const nuevoNIP = Math.floor(1000 + Math.random() * 9000);
+        alert(`NIP reseteado exitosamente.\n\nNuevo NIP: ${nuevoNIP}\n\nInforme este NIP al analista de forma segura.`);
+        
+        // Aquí iría la llamada real al backend
+        // fetch('/api/resetear_nip', { ... })
+    }
+}
+
+function desactivar(analistaId) {
+    if (confirm('¿Está seguro de desactivar este analista?\n\nNo podrá acceder al sistema hasta que sea reactivado.')) {
+        alert('Analista desactivado correctamente.');
+        window.location.reload();
+    }
+}
+
+function activar(analistaId) {
+    if (confirm('¿Está seguro de activar este analista?\n\nPodrá acceder nuevamente al sistema.')) {
+        alert('Analista activado correctamente.');
+        window.location.reload();
+    }
+}
+
+// Búsqueda en tiempo real
+function filtrarAnalistas() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Agregar campo de búsqueda
+document.addEventListener('DOMContentLoaded', function() {
+    const cardHeader = document.querySelector('.card-header');
+    const searchHTML = `
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Todos los Analistas ({{ analistas|length }})
+                </h5>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="searchInput" 
+                           placeholder="Buscar por código, nombre o RFC..." 
+                           onkeyup="filtrarAnalistas()">
+                </div>
+            </div>
+        </div>
+    `;
+    cardHeader.innerHTML = searchHTML;
+});
+</script>
+{% endblock %>
