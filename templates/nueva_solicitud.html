@@ -1,0 +1,850 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Solicitud - Sistema de Análisis Crediticio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .step-wizard {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        margin: 5px;
+        border-radius: 25px;
+        background: #e9ecef;
+        color: #6c757d;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-weight: bold;
+    }
+    
+    .step.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        transform: scale(1.05);
+    }
+    
+    .step.completed {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+    
+    .step i {
+        margin-right: 8px;
+    }
+    
+    .form-step {
+        display: none;
+    }
+    
+    .form-step.active {
+        display: block;
+        animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .section-card {
+        margin-bottom: 25px;
+    }
+    
+    .required-field {
+        color: #dc3545;
+    }
+    
+    .auto-generated {
+        background-color: #e3f2fd !important;
+        font-weight: bold;
+    }
+    
+    .validation-indicator {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    
+    .form-group {
+        position: relative;
+    }
+    
+    .progress-indicator {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: #e9ecef;
+        z-index: 1000;
+    }
+    
+    .progress-bar-custom {
+        height: 100%;
+        background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+        transition: width 0.3s ease;
+        width: 20%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Barra de Progreso Fija -->
+<div class="progress-indicator">
+    <div class="progress-bar-custom" id="progressBar"></div>
+</div>
+
+<div class="container-fluid" style="padding-top: 20px;">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1">
+                                <i class="fas fa-plus text-success me-3"></i>
+                                Nueva Solicitud de Crédito
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Solicitud: <strong>{{ numero_solicitud }}</strong> | 
+                                Analista: <strong>{{ session.analista_codigo }}</strong>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button onclick="guardarBorrador()" class="btn btn-outline-info me-2" id="btnGuardar">
+                                <i class="fas fa-save me-2"></i>Guardar Borrador
+                            </button>
+                            <a href="{{ url_for('captura_analista') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step Wizard -->
+    <div class="step-wizard">
+        <div class="step active" id="step-1" onclick="goToStep(1)">
+            <i class="fas fa-user"></i>
+            1. Datos Personales
+        </div>
+        <div class="step" id="step-2" onclick="goToStep(2)">
+            <i class="fas fa-home"></i>
+            2. Domicilio
+        </div>
+        <div class="step" id="step-3" onclick="goToStep(3)">
+            <i class="fas fa-briefcase"></i>
+            3. Laboral/Económico
+        </div>
+        <div class="step" id="step-4" onclick="goToStep(4)">
+            <i class="fas fa-file-alt"></i>
+            4. Buró de Crédito
+        </div>
+        <div class="step" id="step-5" onclick="goToStep(5)">
+            <i class="fas fa-check-circle"></i>
+            5. Validaciones
+        </div>
+    </div>
+
+    <!-- Main Form -->
+    <form method="POST" class="needs-validation" novalidate id="solicitudForm">
+        <input type="hidden" name="numero_solicitud" value="{{ numero_solicitud }}">
+        
+        <!-- Step 1: Datos Personales -->
+        <div class="form-step active" id="form-step-1">
+            <div class="card card-custom section-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Datos Personales del Cliente
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="nombre" class="form-label fw-bold">
+                                Nombre <span class="required-field">*</span>
+                            </label>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-custom auto-generated" 
+                                   id="rfc" name="rfc" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="estado_civil" class="form-label fw-bold">
+                                Estado Civil <span class="required-field">*</span>
+                            </label>
+                            <select class="form-control form-control-custom" id="estado_civil" name="estado_civil" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Soltero">Soltero</option>
+                                <option value="Casado">Casado</option>
+                                <option value="Divorciado">Divorciado</option>
+                                <option value="Viudo">Viudo</option>
+                                <option value="Unión Libre">Unión Libre</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione el estado civil.</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="dependientes" class="form-label fw-bold">Dependientes Económicos</label>
+                            <input type="number" class="form-control form-control-custom" 
+                                   id="dependientes" name="dependientes" min="0" max="10" value="0">
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label for="nivel_estudios" class="form-label fw-bold">
+                                Nivel Máximo de Estudios <span class="required-field">*</span>
+                            </label>
+                            <select class="form-control form-control-custom" id="nivel_estudios" name="nivel_estudios" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Primaria">Primaria</option>
+                                <option value="Secundaria">Secundaria</option>
+                                <option value="Preparatoria">Preparatoria</option>
+                                <option value="Universidad">Universidad</option>
+                                <option value="Posgrado">Posgrado</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione el nivel de estudios.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Domicilio -->
+        <div class="form-step" id="form-step-2">
+            <div class="card card-custom section-card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-home me-2"></i>
+                        Información de Domicilio
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="codigo_postal" class="form-label fw-bold">
+                                Código Postal <span class="required-field">*</span>
+                            </label>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-custom" 
+                                       id="codigo_postal" name="codigo_postal" required maxlength="5" 
+                                       pattern="[0-9]{5}" onchange="validateCP()">
+                                <div class="invalid-feedback">Código postal de 5 dígitos.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="estado" class="form-label fw-bold">Estado</label>
+                            <input type="text" class="form-control form-control-custom auto-generated" 
+                                   id="estado" name="estado" readonly>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="municipio" class="form-label fw-bold">Municipio</label>
+                            <input type="text" class="form-control form-control-custom auto-generated" 
+                                   id="municipio" name="municipio" readonly>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="colonia" class="form-label fw-bold">
+                                Colonia <span class="required-field">*</span>
+                            </label>
+                            <input type="text" class="form-control form-control-custom" 
+                                   id="colonia" name="colonia" required>
+                            <div class="invalid-feedback">La colonia es obligatoria.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="zona" class="form-label fw-bold">
+                                Zona <span class="required-field">*</span>
+                            </label>
+                            <select class="form-control form-control-custom" id="zona" name="zona" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Urbana">Urbana</option>
+                                <option value="Semiurbana">Semiurbana</option>
+                                <option value="Rural">Rural</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la zona.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="antiguedad_domicilio" class="form-label fw-bold">
+                                Antigüedad en Domicilio (años) <span class="required-field">*</span>
+                            </label>
+                            <input type="number" class="form-control form-control-custom" 
+                                   id="antiguedad_domicilio" name="antiguedad_domicilio" 
+                                   required min="0" max="50" step="0.1">
+                            <div class="invalid-feedback">La antigüedad en domicilio es obligatoria.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Información Laboral/Económica -->
+        <div class="form-step" id="form-step-3">
+            <div class="card card-custom section-card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-briefcase me-2"></i>
+                        Información Laboral y Económica
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="ocupacion" class="form-label fw-bold">
+                                Ocupación <span class="required-field">*</span>
+                            </label>
+                            <select class="form-control form-control-custom" id="ocupacion" name="ocupacion" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="Empleado Público">Empleado Público</option>
+                                <option value="Empleado Privado">Empleado Privado</option>
+                                <option value="Profesionista Independiente">Profesionista Independiente</option>
+                                <option value="Negocio Propio">Negocio Propio</option>
+                                <option value="Comerciante">Comerciante</option>
+                                <option value="Agricultor">Agricultor</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la ocupación.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="antiguedad_empleo" class="form-label fw-bold">
+                                Antigüedad en Empleo (años) <span class="required-field">*</span>
+                            </label>
+                            <input type="number" class="form-control form-control-custom" 
+                                   id="antiguedad_empleo" name="antiguedad_empleo" 
+                                   required min="0" max="50" step="0.1">
+                            <div class="invalid-feedback">La antigüedad en empleo es obligatoria.</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="ingreso_mensual" class="form-label fw-bold">
+                                Ingreso Mensual ($) <span class="required-field">*</span>
+                            </label>
+                            <input type="number" class="form-control form-control-custom" 
+                                   id="ingreso_mensual" name="ingreso_mensual" required min="1" 
+                                   onchange="calculateTDSR()">
+                            <div class="invalid-feedback">El ingreso mensual es obligatorio.</div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="pagos_minimos" class="form-label fw-bold">
+                                Pagos Mínimos Mensuales ($)
+                            </label>
+                            <input type="number" class="form-control form-control-custom" 
+                                   id="pagos_minimos" name="pagos_minimos" min="0" value="0"
+                                   onchange="calculateTDSR()">
+                            <small class="form-text text-muted">Suma de todas las obligaciones mensuales</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="tdsr" class="form-label fw-bold">TDSR (%) - Calculado</label>
+                            <input type="number" class="form-control form-control-custom auto-generated" 
+                                   id="tdsr" name="tdsr" readonly>
+                            <small class="form-text text-muted">Total Debt Service Ratio</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="monto_solicitado" class="form-label fw-bold">
+                                Monto Solicitado ($) <span class="required-field">*</span>
+                            </label>
+                            <input type="number" class="form-control form-control-custom" 
+                                   id="monto_solicitado" name="monto_solicitado" required 
+                                   min="5000" max="250000" step="1000">
+                            <div class="invalid-feedback">Monto entre $5,000 y $250,000.</div>
+                            <small class="form-text text-muted">Monto del crédito solicitado</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fico_score" class="form-label fw-bold">
+                                FICO Score <span class="required-field">*</span>
+                            </label>
+                            <input type="number" class="form-control form-control-custom" 
+                                   id="fico_score" name="fico_score" required min="300" max="800">
+                            <div class="invalid-feedback">FICO Score entre 300 y 800.</div>
+                            <small class="form-text text-muted">Score de buró de crédito</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Buró de Crédito -->
+        <div class="form-step" id="form-step-4">
+            <div class="card card-custom section-card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>
+                        Información de Buró de Crédito
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="ultima_calificacion" class="form-label fw-bold">
+                                Última Calificación SIC <span class="required-field">*</span>
+                            </label>
+                            <select class="form-control form-control-custom" id="ultima_calificacion" 
+                                    name="ultima_calificacion" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="1">1 - Excelente</option>
+                                <option value="2">2 - Bueno</option>
+                                <option value="3">3 - Regular</option>
+                                <option value="4">4 - Malo</option>
+                                <option value="9">9 - Sin experiencia</option>
+                                <option value="96">96 - No disponible</option>
+                                <option value="97">97 - No disponible</option>
+                                <option value="98">98 - No disponible</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione la calificación SIC.</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="mop_6" class="form-label fw-bold">MOP 6 (Últimos 6 meses)</label>
+                            <select class="form-control form-control-custom" id="mop_6" name="mop_6">
+                                <option value="">Seleccionar...</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="mop_12" class="form-label fw-bold">MOP 12 (Últimos 12 meses)</label>
+                            <select class="form-control form-control-custom" id="mop_12" name="mop_12">
+                                <option value="">Seleccionar...</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="num_consultas" class="form-label fw-bold">Número de Consultas SIC</label>
+                            <input type="number" class="form-control form-control-custom" 
+                                   id="num_consultas" name="num_consultas" min="0" max="50" value="0">
+                            <small class="form-text text-muted">Consultas en últimos 6 meses</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Validaciones -->
+        <div class="form-step" id="form-step-5">
+            <div class="card card-custom section-card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Validaciones y Documentos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <h6><i class="fas fa-clipboard-check me-2"></i>Documentos Validados</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="firma_solicitud" name="firma_solicitud">
+                                <label class="form-check-label" for="firma_solicitud">
+                                    <strong>Firma de Solicitud</strong>
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="validacion_id" name="validacion_id">
+                                <label class="form-check-label" for="validacion_id">
+                                    <strong>Validación de Identificación</strong>
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="validacion_domicilio" name="validacion_domicilio">
+                                <label class="form-check-label" for="validacion_domicilio">
+                                    <strong>Validación de Domicilio</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <h6><i class="fas fa-file-alt me-2"></i>Comprobantes</h6>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="validacion_ingresos" name="validacion_ingresos">
+                                <label class="form-check-label" for="validacion_ingresos">
+                                    <strong>Validación de Ingresos</strong>
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="comprobante_ingresos" name="comprobante_ingresos">
+                                <label class="form-check-label" for="comprobante_ingresos">
+                                    <strong>Comprobante de Ingresos</strong>
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="validacion_csf" name="validacion_csf">
+                                <label class="form-check-label" for="validacion_csf">
+                                    <strong>Constancia Situación Fiscal</strong>
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="validacion_carta_sic" name="validacion_carta_sic">
+                                <label class="form-check-label" for="validacion_carta_sic">
+                                    <strong>Carta Autorización SIC</strong>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Resumen de la Solicitud</h6>
+                        <div id="resumenSolicitud">
+                            <p><strong>Cliente:</strong> <span id="resumen-cliente">-</span></p>
+                            <p><strong>Monto Solicitado:</strong> <span id="resumen-monto">-</span></p>
+                            <p><strong>FICO Score:</strong> <span id="resumen-fico">-</span></p>
+                            <p><strong>TDSR:</strong> <span id="resumen-tdsr">-</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="card card-custom">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <button type="button" class="btn btn-outline-secondary" id="prevBtn" onclick="changeStep(-1)" style="display: none;">
+                            <i class="fas fa-arrow-left me-2"></i>Anterior
+                        </button>
+                    </div>
+                    <div class="col-6 text-end">
+                        <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
+                            Siguiente <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                        <button type="submit" class="btn btn-success" id="submitBtn" style="display: none;">
+                            <i class="fas fa-save me-2"></i>Crear Solicitud
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+const totalSteps = 5;
+
+function showStep(step) {
+    // Ocultar todos los pasos
+    document.querySelectorAll('.form-step').forEach(function(element) {
+        element.classList.remove('active');
+    });
+    
+    // Mostrar paso actual
+    document.getElementById(`form-step-${step}`).classList.add('active');
+    
+    // Actualizar wizard
+    document.querySelectorAll('.step').forEach(function(element) {
+        element.classList.remove('active');
+    });
+    document.getElementById(`step-${step}`).classList.add('active');
+    
+    // Actualizar botones
+    updateButtons(step);
+    
+    // Actualizar barra de progreso
+    updateProgress(step);
+}
+
+function updateButtons(step) {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (step === 1) {
+        prevBtn.style.display = 'none';
+    } else {
+        prevBtn.style.display = 'inline-block';
+    }
+    
+    if (step === totalSteps) {
+        nextBtn.style.display = 'none';
+        submitBtn.style.display = 'inline-block';
+    } else {
+        nextBtn.style.display = 'inline-block';
+        submitBtn.style.display = 'none';
+    }
+}
+
+function updateProgress(step) {
+    const progress = (step / totalSteps) * 100;
+    document.getElementById('progressBar').style.width = progress + '%';
+}
+
+function changeStep(direction) {
+    const newStep = currentStep + direction;
+    
+    if (newStep >= 1 && newStep <= totalSteps) {
+        // Validar paso actual antes de continuar
+        if (direction > 0 && !validateCurrentStep()) {
+            return;
+        }
+        
+        currentStep = newStep;
+        showStep(currentStep);
+        
+        // Marcar paso como completado
+        if (direction > 0) {
+            document.getElementById(`step-${currentStep - 1}`).classList.add('completed');
+        }
+        
+        // Actualizar resumen en el último paso
+        if (currentStep === totalSteps) {
+            updateResumen();
+        }
+    }
+}
+
+function goToStep(step) {
+    if (step <= currentStep || validateStepsUntil(step - 1)) {
+        currentStep = step;
+        showStep(currentStep);
+    }
+}
+
+function validateCurrentStep() {
+    const currentForm = document.getElementById(`form-step-${currentStep}`);
+    const requiredFields = currentForm.querySelectorAll('[required]');
+    let isValid = true;
+    
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+        }
+    });
+    
+    if (!isValid) {
+        alert('Por favor complete todos los campos obligatorios antes de continuar.');
+    }
+    
+    return isValid;
+}
+
+function validateStepsUntil(step) {
+    for (let i = 1; i <= step; i++) {
+        const form = document.getElementById(`form-step-${i}`);
+        const requiredFields = form.querySelectorAll('[required]');
+        
+        for (let field of requiredFields) {
+            if (!field.value.trim()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function generateRFC() {
+    const nombre = document.getElementById('nombre').value.trim();
+    const apellidoPaterno = document.getElementById('apellido_paterno').value.trim();
+    const apellidoMaterno = document.getElementById('apellido_materno').value.trim();
+    const fechaNacimiento = document.getElementById('fecha_nacimiento').value;
+    const homoclave = document.getElementById('homoclave').value.trim();
+    
+    if (nombre && apellidoPaterno && apellidoMaterno && fechaNacimiento && homoclave) {
+        fetch('/api/generar_rfc', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                nombre: nombre,
+                apellido_paterno: apellidoPaterno,
+                apellido_materno: apellidoMaterno,
+                fecha_nacimiento: fechaNacimiento,
+                homoclave: homoclave
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('rfc').value = data.rfc;
+                document.getElementById('edad').value = data.edad;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function calculateTDSR() {
+    const ingresoMensual = parseFloat(document.getElementById('ingreso_mensual').value) || 0;
+    const pagosMinimos = parseFloat(document.getElementById('pagos_minimos').value) || 0;
+    
+    if (ingresoMensual > 0) {
+        fetch('/api/calcular_tdsr', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                ingreso_mensual: ingresoMensual,
+                pagos_minimos: pagosMinimos
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('tdsr').value = data.tdsr;
+                
+                // Cambiar color según el TDSR
+                const tdsrField = document.getElementById('tdsr');
+                if (data.tdsr <= 30) {
+                    tdsrField.className = 'form-control form-control-custom auto-generated text-success fw-bold';
+                } else if (data.tdsr <= 35) {
+                    tdsrField.className = 'form-control form-control-custom auto-generated text-warning fw-bold';
+                } else {
+                    tdsrField.className = 'form-control form-control-custom auto-generated text-danger fw-bold';
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function validateCP() {
+    const cp = document.getElementById('codigo_postal').value;
+    
+    if (cp.length === 5) {
+        fetch('/api/validar_cp', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({codigo_postal: cp})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.valido) {
+                document.getElementById('estado').value = data.estado;
+                document.getElementById('municipio').value = data.municipio;
+                document.getElementById('zona').value = data.zona;
+            } else {
+                document.getElementById('estado').value = '';
+                document.getElementById('municipio').value = '';
+                document.getElementById('zona').value = '';
+                alert('Código postal no encontrado');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function updateResumen() {
+    const nombre = document.getElementById('nombre').value;
+    const apellidoPaterno = document.getElementById('apellido_paterno').value;
+    const monto = document.getElementById('monto_solicitado').value;
+    const fico = document.getElementById('fico_score').value;
+    const tdsr = document.getElementById('tdsr').value;
+    
+    document.getElementById('resumen-cliente').textContent = `${nombre} ${apellidoPaterno}`;
+    document.getElementById('resumen-monto').textContent = monto ? `${parseFloat(monto).toLocaleString()}` : '-';
+    document.getElementById('resumen-fico').textContent = fico || '-';
+    document.getElementById('resumen-tdsr').textContent = tdsr ? `${tdsr}%` : '-';
+}
+
+function guardarBorrador() {
+    alert('Funcionalidad de guardar borrador en desarrollo');
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    showStep(1);
+    
+    // Auto-save cada 30 segundos
+    setInterval(function() {
+        const formData = new FormData(document.getElementById('solicitudForm'));
+        localStorage.setItem('solicitud_borrador', JSON.stringify(Object.fromEntries(formData)));
+    }, 30000);
+});
+</script>
+{% endblock %}="form-control form-control-custom" 
+                                       id="nombre" name="nombre" required maxlength="100"
+                                       onchange="generateRFC()">
+                                <div class="invalid-feedback">El nombre es obligatorio.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="apellido_paterno" class="form-label fw-bold">
+                                Apellido Paterno <span class="required-field">*</span>
+                            </label>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-custom" 
+                                       id="apellido_paterno" name="apellido_paterno" required maxlength="100"
+                                       onchange="generateRFC()">
+                                <div class="invalid-feedback">El apellido paterno es obligatorio.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="apellido_materno" class="form-label fw-bold">
+                                Apellido Materno <span class="required-field">*</span>
+                            </label>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-custom" 
+                                       id="apellido_materno" name="apellido_materno" required maxlength="100"
+                                       onchange="generateRFC()">
+                                <div class="invalid-feedback">El apellido materno es obligatorio.</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="fecha_nacimiento" class="form-label fw-bold">
+                                Fecha de Nacimiento <span class="required-field">*</span>
+                            </label>
+                            <div class="form-group">
+                                <input type="date" class="form-control form-control-custom" 
+                                       id="fecha_nacimiento" name="fecha_nacimiento" required
+                                       onchange="generateRFC()">
+                                <div class="invalid-feedback">La fecha de nacimiento es obligatoria.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="edad" class="form-label fw-bold">Edad</label>
+                            <input type="number" class="form-control form-control-custom auto-generated" 
+                                   id="edad" name="edad" readonly>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="sexo" class="form-label fw-bold">
+                                Sexo <span class="required-field">*</span>
+                            </label>
+                            <select class="form-control form-control-custom" id="sexo" name="sexo" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                            </select>
+                            <div class="invalid-feedback">Seleccione el sexo.</div>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="homoclave" class="form-label fw-bold">
+                                Homoclave <span class="required-field">*</span>
+                            </label>
+                            <div class="form-group">
+                                <input type="text" class="form-control form-control-custom" 
+                                       id="homoclave" name="homoclave" required maxlength="3" 
+                                       style="text-transform: uppercase;" onchange="generateRFC()">
+                                <div class="invalid-feedback">Homoclave de 3 caracteres.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="rfc" class="form-label fw-bold">RFC (Generado Automáticamente)</label>
+                            <input type="text" class
