@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel del Analista - Sistema de Crédito</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            border: none;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 0;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <span class="navbar-brand">
+                <i class="fas fa-chart-line"></i> Sistema de Análisis de Crédito
+            </span>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <i class="fas fa-user"></i> {{ user_name }}
+                </span>
+                <span class="navbar-text me-3">
+                    <i class="fas fa-id-badge"></i> {{ user_id }}
+                </span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container text-center">
+            <h1>¡Bienvenido, {{ user_name }}!</h1>
+            <p class="lead">Usuario: {{ user_id }}</p>
+            <p>Sistema profesional de análisis y evaluación crediticia</p>
+        </div>
+    </div>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Panel Principal -->
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Nueva Evaluación</h5>
+                        <p class="card-text">Iniciar un nuevo análisis de solicitud de crédito</p>
+                        <button class="btn btn-primary" onclick="proximamente()">
+                            <i class="fas fa-plus"></i> Iniciar Evaluación
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-history fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Historial</h5>
+                        <p class="card-text">Revisar evaluaciones anteriores y reportes</p>
+                        <button class="btn btn-success" onclick="proximamente()">
+                            <i class="fas fa-list"></i> Ver Historial
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
+                        <h5 class="card-title">Estadísticas</h5>
+                        <p class="card-text">Métricas y análisis de desempeño</p>
+                        <button class="btn btn-info text-white" onclick="proximamente()">
+                            <i class="fas fa-chart-line"></i> Ver Estadísticas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Sistema -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Información del Sistema</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Panel del Analista</h6>
+                                <p>Este es tu espacio de trabajo para realizar análisis de crédito profesionales. 
+                                   Aquí podrás gestionar solicitudes, revisar historiales y generar reportes.</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Próximas Funcionalidades</h6>
+                                <ul>
+                                    <li>Módulo de captura de solicitudes</li>
+                                    <li>Algoritmos de scoring crediticio</li>
+                                    <li>Generación de reportes automáticos</li>
+                                    <li>Integración con burós de crédito</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function proximamente() {
+            alert('Funcionalidad en desarrollo. ¡Próximamente disponible!');
+        }
+    </script>
+</body>
+</html>
