@@ -201,3 +201,103 @@
                                         </label>
                                         <input type="password" class="form-control" id="nip" 
                                                name="nip" required minlength="4"
+<div class="col-md-6 mb-3">
+                                        <label for="nip" class="form-label fw-bold">
+                                            Crear NIP <span class="required">*</span>
+                                        </label>
+                                        <input type="password" class="form-control" id="nip" 
+                                               name="nip" required minlength="4"
+                                               placeholder="Mínimo 4 caracteres">
+                                        <div class="form-text">
+                                            <i class="fas fa-shield-alt"></i> 
+                                            Este será tu NIP para acceder al sistema de práctica
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6 mb-3">
+                                        <label for="confirmar_nip" class="form-label fw-bold">
+                                            Confirmar NIP <span class="required">*</span>
+                                        </label>
+                                        <input type="password" class="form-control" id="confirmar_nip" 
+                                               name="confirmar_nip" required minlength="4"
+                                               placeholder="Repite tu NIP">
+                                        <div id="nipMismatch" class="text-danger" style="display: none;">
+                                            <i class="fas fa-exclamation-triangle"></i> Los NIPs no coinciden
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Información importante -->
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-lightbulb"></i> Información importante:</h6>
+                                    <ul class="mb-0">
+                                        <li>Se te asignará un <strong>número único</strong> con formato <strong>E-XXX</strong></li>
+                                        <li>Tu registro quedará <strong>pendiente de aprobación</strong> por el administrador</li>
+                                        <li>Recibirás tu número de analista <strong>inmediatamente</strong> tras completar el registro</li>
+                                        <li>Guarda tu número y NIP en un lugar <strong>seguro</strong></li>
+                                        <li>En caso de olvido, contacta a: <strong>info@skillscert.com</strong></li>
+                                    </ul>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-register" id="btnRegistrar">
+                                        <i class="fas fa-user-check"></i> Crear Número de Analista
+                                    </button>
+                                    <a href="{{ url_for('login_analista') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left"></i> Ya tengo número de analista
+                                    </a>
+                                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-home"></i> Volver al inicio
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const nipInput = document.getElementById('nip');
+            const confirmarNipInput = document.getElementById('confirmar_nip');
+            const btnRegistrar = document.getElementById('btnRegistrar');
+            const nipMismatch = document.getElementById('nipMismatch');
+            const rfcInput = document.getElementById('registro_contribuyentes');
+
+            // Validar coincidencia de NIPs
+            function validarNips() {
+                if (confirmarNipInput.value && nipInput.value !== confirmarNipInput.value) {
+                    nipMismatch.style.display = 'block';
+                    confirmarNipInput.classList.add('is-invalid');
+                    btnRegistrar.disabled = true;
+                } else {
+                    nipMismatch.style.display = 'none';
+                    confirmarNipInput.classList.remove('is-invalid');
+                    btnRegistrar.disabled = false;
+                }
+            }
+
+            nipInput.addEventListener('input', validarNips);
+            confirmarNipInput.addEventListener('input', validarNips);
+
+            // Formatear RFC
+            rfcInput.addEventListener('input', function(e) {
+                e.target.value = e.target.value.toUpperCase();
+            });
+
+            // Validar formulario antes de enviar
+            document.getElementById('registroForm').addEventListener('submit', function(e) {
+                if (nipInput.value !== confirmarNipInput.value) {
+                    e.preventDefault();
+                    alert('Los NIPs no coinciden. Por favor verifica.');
+                    return false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
