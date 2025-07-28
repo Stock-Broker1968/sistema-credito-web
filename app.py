@@ -268,6 +268,39 @@ def logout():
     session.clear()
     flash('Sesión cerrada exitosamente', 'success')
     return redirect(url_for('index'))
+@app.route('/resetear_nip/<numero_usuario>', methods=['POST'])
+def resetear_nip(numero_usuario):
+    if 'user_type' not in session or session['user_type'] != 'admin':
+        return {'success': False, 'message': 'No autorizado'}, 403
+    
+    try:
+        data = request.get_json()
+        nuevo_nip = data.get('nuevo_nip')
+        
+        if not nuevo_nip or len(nuevo_nip) < 4:
+            return {'success': False, 'message': 'NIP debe tener al menos 4 caracteres'}
+        
+        conn = sqlite3.connect('credito.db')
+        cursor = conn.cursor()
+        
+        nip_encriptado = encriptar_nip(nuevo_nip)
+        cursor.execute('''
+            UPDATE analistas 
+            SET nip = ?
+            WHERE numero_usuario = ?
+        ''', (nip_encriptado, numero_usuario))
+        
+        if cursor.rowcount > 0:
+            conn.commit()
+            conn.close()
+            flash(f'NIP del analista {numero_usuario} actualizado exitosamente', 'success')
+            return {'success': True, 'message': 'NIP actualizado'}
+        else:
+            conn.close()
+            return {'success': False, 'message': 'Analista no encontrado'}
+            
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
 
 if __name__ == '__main__':
     init_db()
