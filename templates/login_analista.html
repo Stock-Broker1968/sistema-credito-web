@@ -1,189 +1,162 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso Analistas - Curso SkillsCert</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .login-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-        }
-        .login-card {
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            border: none;
-            overflow: hidden;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        .login-header {
-            background: linear-gradient(45deg, #2c3e50, #34495e);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .login-body {
-            padding: 40px 30px;
-            background: white;
-        }
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            padding: 12px 15px;
-            font-size: 16px;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 10px rgba(102, 126, 234, 0.25);
-        }
-        .btn-login {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: none;
-            border-radius: 25px;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-            width: 100%;
-        }
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
-            color: white;
-        }
-        .input-group-text {
-            background: #f8f9fa;
-            border-color: #e9ecef;
-            color: #6c757d;
-        }
-        .support-info {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-6">
-                    <div class="login-card">
-                        <!-- Header -->
-                        <div class="login-header">
-                            <h3><i class="fas fa-user-graduate"></i> Acceso de Analista</h3>
-                            <p class="mb-0">Curso de Análisis de Crédito • SkillsCert</p>
+{% extends "base.html" %}
+
+{% block title %}Login Analista - Sistema de Análisis Crediticio{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="card card-custom">
+            <div class="card-body p-5">
+                <!-- Logo Section -->
+                <div class="logo-section">
+                    <i class="fas fa-university fa-3x text-primary mb-3"></i>
+                    <h1>Sistema de Crédito</h1>
+                    <p class="subtitle">Acceso para Analistas</p>
+                </div>
+
+                <!-- Login Form -->
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="mb-4">
+                        <label for="codigo" class="form-label fw-bold">
+                            <i class="fas fa-id-badge me-2"></i>Código de Analista
+                        </label>
+                        <input type="text" 
+                               class="form-control form-control-custom" 
+                               id="codigo" 
+                               name="codigo" 
+                               placeholder="E001" 
+                               maxlength="4"
+                               style="text-transform: uppercase;"
+                               required>
+                        <div class="invalid-feedback">
+                            Por favor ingrese su código de analista.
                         </div>
-
-                        <!-- Body -->
-                        <div class="login-body">
-                            {% with messages = get_flashed_messages(with_categories=true) %}
-                                {% if messages %}
-                                    {% for category, message in messages %}
-                                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                                            {{ message }}
-                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endwith %}
-
-                            <form method="POST" action="{{ url_for('login_analista') }}">
-                                <input type="hidden" name="tiene_usuario" value="si">
-                                
-                                <h5 class="text-center mb-4">Iniciar Sesión</h5>
-                                
-                                <div class="mb-3">
-                                    <label for="numero_usuario" class="form-label fw-bold">Número de Analista:</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text">E-</span>
-                                        <input type="text" class="form-control" id="numero_usuario" name="numero_usuario" 
-                                               placeholder="001" pattern="[0-9]{3}" maxlength="3" required>
-                                    </div>
-                                    <div class="form-text">
-                                        <i class="fas fa-info-circle"></i> 
-                                        Ingresa solo los 3 números de tu identificador (ejemplo: 001 para E-001)
-                                    </div>
-                                </div>
-
-                                <div class="mb-4">
-                                    <label for="nip" class="form-label fw-bold">NIP Personal:</label>
-                                    <input type="password" class="form-control" id="nip" name="nip" 
-                                           placeholder="Ingresa tu NIP" required>
-                                    <div class="form-text">
-                                        <i class="fas fa-lock"></i> 
-                                        El NIP que creaste durante tu registro
-                                    </div>
-                                </div>
-
-                                <button type="submit" class="btn btn-login">
-                                    <i class="fas fa-sign-in-alt"></i> Acceder al Sistema
-                                </button>
-                            </form>
-
-                            <!-- Información de soporte -->
-                            <div class="support-info">
-                                <h6><i class="fas fa-question-circle"></i> ¿Problemas para acceder?</h6>
-                                <ul class="mb-2 small">
-                                    <li>Verifica que tu número de analista esté aprobado por el administrador</li>
-                                    <li>Asegúrate de ingresar el NIP correcto</li>
-                                    <li>Si olvidaste tu información, solicita reposición</li>
-                                </ul>
-                                <p class="mb-0 text-center">
-                                    <i class="fas fa-envelope"></i> 
-                                    Soporte: <a href="mailto:info@skillscert.com">info@skillscert.com</a>
-                                </p>
-                            </div>
-
-                            <!-- Enlaces de navegación -->
-                            <div class="text-center mt-4">
-                                <div class="d-grid gap-2">
-                                    <a href="{{ url_for('registro_analista') }}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-user-plus"></i> ¿No tienes número de analista? Regístrate
-                                    </a>
-                                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-arrow-left"></i> Volver al inicio
-                                    </a>
-                                </div>
-                            </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Formato: E### (ejemplo: E001)
                         </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="nip" class="form-label fw-bold">
+                            <i class="fas fa-lock me-2"></i>NIP
+                        </label>
+                        <div class="input-group">
+                            <input type="password" 
+                                   class="form-control form-control-custom" 
+                                   id="nip" 
+                                   name="nip" 
+                                   placeholder="••••" 
+                                   maxlength="4"
+                                   required>
+                            <button type="button" 
+                                    class="btn btn-outline-secondary" 
+                                    onclick="togglePassword('nip')">
+                                <i class="fas fa-eye" id="nip-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback">
+                            Por favor ingrese su NIP de 4 dígitos.
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            NIP de 4 dígitos asignado en el registro
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-4">
+                        <button type="submit" class="btn btn-primary btn-custom">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            Iniciar Sesión
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Additional Links -->
+                <div class="text-center">
+                    <hr class="my-4">
+                    <p class="mb-3">¿No tienes cuenta?</p>
+                    <a href="{{ url_for('registro_analista') }}" class="btn btn-outline-primary btn-custom">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Registrarse como Analista
+                    </a>
+                </div>
+
+                <div class="text-center mt-4">
+                    <hr class="my-4">
+                    <p class="text-muted mb-2">¿Eres administrador?</p>
+                    <a href="{{ url_for('login_admin') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-cog me-2"></i>
+                        Acceso Administrador
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Credentials Info -->
+        <div class="card card-custom mt-3">
+            <div class="card-body p-3">
+                <h6 class="card-title text-center mb-3">
+                    <i class="fas fa-info-circle text-info me-2"></i>
+                    Credenciales de Prueba
+                </h6>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Código</small>
+                        <strong>E001</strong>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">NIP</small>
+                        <strong>1234</strong>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Auto-formatear el número de usuario
-        document.addEventListener('DOMContentLoaded', function() {
-            const numeroUsuarioInput = document.getElementById('numero_usuario');
-            if (numeroUsuarioInput) {
-                numeroUsuarioInput.addEventListener('input', function(e) {
-                    // Solo permitir números
-                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                    
-                    // Formatear con ceros a la izquierda
-                    if (e.target.value.length > 0) {
-                        const numero = parseInt(e.target.value);
-                        e.target.value = numero.toString().padStart(3, '0');
-                    }
-                });
+{% block extra_js %}
+<script>
+    // Función para mostrar/ocultar contraseña
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        const eye = document.getElementById(fieldId + '-eye');
+        
+        if (field.type === 'password') {
+            field.type = 'text';
+            eye.className = 'fas fa-eye-slash';
+        } else {
+            field.type = 'password';
+            eye.className = 'fas fa-eye';
+        }
+    }
 
-                // Focus automático al campo
-                numeroUsuarioInput.focus();
+    // Auto-focus en el primer campo
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('codigo').focus();
+        
+        // Formatear código automáticamente
+        document.getElementById('codigo').addEventListener('input', function(e) {
+            let value = e.target.value.toUpperCase();
+            if (value && !value.startsWith('E')) {
+                value = 'E' + value.replace(/[^0-9]/g, '');
+            }
+            e.target.value = value;
+        });
+        
+        // Validar NIP solo números
+        document.getElementById('nip').addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        });
+        
+        // Enter key navigation
+        document.getElementById('codigo').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('nip').focus();
             }
         });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}
