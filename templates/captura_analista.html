@@ -1,138 +1,28 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel del Analista - Sistema de Crédito</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .navbar {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-        }
-        .card {
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            border: none;
-        }
-        .hero-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 60px 0;
-            margin-bottom: 40px;
-        }
-    </style>
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <span class="navbar-brand">
-                <i class="fas fa-chart-line"></i> Sistema de Análisis de Crédito
-            </span>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">
-                    <i class="fas fa-user"></i> {{ user_name }}
-                </span>
-                <span class="navbar-text me-3">
-                    <i class="fas fa-id-badge"></i> {{ user_id }}
-                </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
-                </a>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <!-- Hero Section -->
-    <div class="hero-section">
-        <div class="container text-center">
-            <h1>¡Bienvenido, {{ user_name }}!</h1>
-            <p class="lead">Usuario: {{ user_id }}</p>
-            <p>Sistema profesional de análisis y evaluación crediticia</p>
-        </div>
-    </div>
+{% block title %}Dashboard Analista - {{ session.analista_nombre }}{% endblock %}
 
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <!-- Panel Principal -->
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
-                        <h5 class="card-title">Nueva Evaluación</h5>
-                        <p class="card-text">Iniciar un nuevo análisis de solicitud de crédito</p>
-                        <button class="btn btn-primary" onclick="proximamente()">
-                            <i class="fas fa-plus"></i> Iniciar Evaluación
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-history fa-3x text-success mb-3"></i>
-                        <h5 class="card-title">Historial</h5>
-                        <p class="card-text">Revisar evaluaciones anteriores y reportes</p>
-                        <button class="btn btn-success" onclick="proximamente()">
-                            <i class="fas fa-list"></i> Ver Historial
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-chart-bar fa-3x text-info mb-3"></i>
-                        <h5 class="card-title">Estadísticas</h5>
-                        <p class="card-text">Métricas y análisis de desempeño</p>
-                        <button class="btn btn-info text-white" onclick="proximamente()">
-                            <i class="fas fa-chart-line"></i> Ver Estadísticas
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Información del Sistema -->
-        <div class="row mt-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h5><i class="fas fa-info-circle"></i> Información del Sistema</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6>Panel del Analista</h6>
-                                <p>Este es tu espacio de trabajo para realizar análisis de crédito profesionales. 
-                                   Aquí podrás gestionar solicitudes, revisar historiales y generar reportes.</p>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>Próximas Funcionalidades</h6>
-                                <ul>
-                                    <li>Módulo de captura de solicitudes</li>
-                                    <li>Algoritmos de scoring crediticio</li>
-                                    <li>Generación de reportes automáticos</li>
-                                    <li>Integración con burós de crédito</li>
-                                </ul>
-                            </div>
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1">
+                                <i class="fas fa-tachometer-alt text-primary me-3"></i>
+                                Dashboard del Analista
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Bienvenido, <strong>{{ session.analista_nombre }}</strong> ({{ session.analista_codigo }})
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <a href="{{ url_for('nueva_solicitud') }}" class="btn btn-primary btn-custom">
+                                <i class="fas fa-plus me-2"></i>Nueva Solicitud
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -140,12 +30,276 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        function proximamente() {
-            alert('Funcionalidad en desarrollo. ¡Próximamente disponible!');
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stats-card">
+                <i class="fas fa-folder-open fa-2x mb-3"></i>
+                <h3>{{ total_solicitudes }}</h3>
+                <p class="mb-0">Total Solicitudes</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <i class="fas fa-check-circle fa-2x mb-3"></i>
+                <h3>{{ aprobadas }}</h3>
+                <p class="mb-0">Aprobadas</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
+                <i class="fas fa-times-circle fa-2x mb-3"></i>
+                <h3>{{ rechazadas }}</h3>
+                <p class="mb-0">Rechazadas</p>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="stats-card" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #2c3e50;">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h3>{{ zona_gris }}</h3>
+                <p class="mb-0">Zona Gris</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions and Recent Applications -->
+    <div class="row">
+        <!-- Quick Actions -->
+        <div class="col-lg-4 mb-4">
+            <div class="card card-custom h-100">
+                <div class="card-header bg-transparent">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt text-warning me-2"></i>
+                        Acciones Rápidas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-3">
+                        <a href="{{ url_for('nueva_solicitud') }}" class="btn btn-outline-primary btn-custom">
+                            <i class="fas fa-plus me-2"></i>
+                            Nueva Solicitud de Crédito
+                        </a>
+                        <a href="{{ url_for('mis_solicitudes') }}" class="btn btn-outline-info btn-custom">
+                            <i class="fas fa-list me-2"></i>
+                            Ver Mis Solicitudes
+                        </a>
+                        <a href="{{ url_for('solicitudes_pendientes') }}" class="btn btn-outline-warning btn-custom">
+                            <i class="fas fa-clock me-2"></i>
+                            Solicitudes Pendientes
+                        </a>
+                        <a href="{{ url_for('mi_productividad') }}" class="btn btn-outline-success btn-custom">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Mi Productividad
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Applications -->
+        <div class="col-lg-8 mb-4">
+            <div class="card card-custom h-100">
+                <div class="card-header bg-transparent">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history text-info me-2"></i>
+                        Solicitudes Recientes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if solicitudes_recientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Número</th>
+                                    <th>Cliente</th>
+                                    <th>Monto</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for solicitud in solicitudes_recientes %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ solicitud.numero }}</span>
+                                    </td>
+                                    <td>
+                                        {% if solicitud.cliente %}
+                                            {{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }}
+                                        {% else %}
+                                            <em class="text-muted">Sin asignar</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if solicitud.monto_solicitado %}
+                                            ${{ "{:,.2f}".format(solicitud.monto_solicitado) }}
+                                        {% else %}
+                                            <em class="text-muted">No definido</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if solicitud.decision == 'aprobado' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Aprobado
+                                            </span>
+                                        {% elif solicitud.decision == 'rechazado' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times me-1"></i>Rechazado
+                                            </span>
+                                        {% elif solicitud.decision == 'zona_gris' %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-exclamation me-1"></i>Zona Gris
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-info">
+                                                <i class="fas fa-clock me-1"></i>En Proceso
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ solicitud.fecha_solicitud.strftime('%d/%m/%Y %H:%M') }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('ver_solicitud', id=solicitud.id) }}" 
+                                               class="btn btn-outline-primary" 
+                                               title="Ver detalles">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if not solicitud.decision %}
+                                            <a href="{{ url_for('continuar_solicitud', id=solicitud.id) }}" 
+                                               class="btn btn-outline-success" 
+                                               title="Continuar">
+                                                <i class="fas fa-play"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('mis_solicitudes') }}" class="btn btn-sm btn-outline-primary">
+                            Ver todas mis solicitudes
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay solicitudes recientes</h5>
+                        <p class="text-muted mb-4">Comienza creando tu primera solicitud de crédito</p>
+                        <a href="{{ url_for('nueva_solicitud') }}" class="btn btn-primary btn-custom">
+                            <i class="fas fa-plus me-2"></i>
+                            Crear Primera Solicitud
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Chart -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card card-custom">
+                <div class="card-header bg-transparent">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line text-success me-2"></i>
+                        Rendimiento del Mes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3 mb-3">
+                            <h4 class="text-primary">
+                                {% if total_solicitudes > 0 %}
+                                    {{ "%.1f"|format((aprobadas / total_solicitudes) * 100) }}%
+                                {% else %}
+                                    0.0%
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted mb-0">Tasa de Aprobación</p>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <h4 class="text-info">{{ total_solicitudes }}</h4>
+                            <p class="text-muted mb-0">Solicitudes Procesadas</p>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <h4 class="text-success">
+                                {% if total_solicitudes > 0 %}
+                                    {{ "%.1f"|format(total_solicitudes / 30) }}
+                                {% else %}
+                                    0.0
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted mb-0">Promedio Diario</p>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <h4 class="text-warning">
+                                {% if zona_gris > 0 %}
+                                    {{ "%.1f"|format((zona_gris / total_solicitudes) * 100) }}%
+                                {% else %}
+                                    0.0%
+                                {% endif %}
+                            </h4>
+                            <p class="text-muted mb-0">Casos Zona Gris</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Actualizar estadísticas cada 5 minutos
+        setInterval(function() {
+            fetch('/api/estadisticas_analista')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Actualizar contadores
+                        document.querySelector('.stats-card:nth-child(1) h3').textContent = data.total;
+                        document.querySelector('.stats-card:nth-child(2) h3').textContent = data.aprobadas;
+                        document.querySelector('.stats-card:nth-child(3) h3').textContent = data.rechazadas;
+                        document.querySelector('.stats-card:nth-child(4) h3').textContent = data.zona_gris;
+                    }
+                })
+                .catch(error => console.log('Error al actualizar estadísticas:', error));
+        }, 300000); // 5 minutos
+
+        // Animación de contadores
+        function animateCounter(element, target) {
+            let current = 0;
+            const increment = target / 50;
+            const timer = setInterval(function() {
+                current += increment;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(timer);
+                }
+                element.textContent = Math.floor(current);
+            }, 20);
         }
-    </script>
-</body>
-</html>
+
+        // Animar contadores al cargar
+        document.querySelectorAll('.stats-card h3').forEach(function(element) {
+            const target = parseInt(element.textContent);
+            if (target > 0) {
+                element.textContent = '0';
+                animateCounter(element, target);
+            }
+        });
+    });
+</script>
+{% endblock %}
