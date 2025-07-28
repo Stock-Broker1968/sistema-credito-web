@@ -1,0 +1,565 @@
+{% extends "base.html" %}
+
+{% block title %}Resultado Solicitud {{ solicitud.numero }} - Sistema de Análisis Crediticio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-card {
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+    
+    .result-approved {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+    
+    .result-rejected {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        color: white;
+    }
+    
+    .result-gray-zone {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        color: #2c3e50;
+    }
+    
+    .terms-table {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 25px;
+        margin: 20px 0;
+    }
+    
+    .certificate-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 30px;
+        margin: 20px 0;
+        text-align: center;
+    }
+    
+    .print-button {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        
+        .result-card, .terms-table, .certificate-section {
+            box-shadow: none;
+            border: 2px solid #ddd;
+        }
+    }
+    
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #dee2e6;
+    }
+    
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -22px;
+        top: 5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #28a745;
+        border: 2px solid white;
+    }
+    
+    .amortization-table {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-custom no-print">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1">
+                                <i class="fas fa-clipboard-check text-success me-3"></i>
+                                Resultado de Evaluación
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Solicitud: <strong>{{ solicitud.numero }}</strong> | 
+                                Fecha: <strong>{{ solicitud.fecha_decision.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_decision else 'N/A' }}</strong>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button onclick="window.print()" class="btn btn-outline-primary me-2 no-print">
+                                <i class="fas fa-print me-2"></i>Imprimir
+                            </button>
+                            <a href="{{ url_for('mis_solicitudes') }}" class="btn btn-outline-secondary no-print">
+                                <i class="fas fa-list me-2"></i>Mis Solicitudes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultado Principal -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            {% if solicitud.decision == 'aprobado' %}
+            <div class="result-card result-approved">
+                <i class="fas fa-check-circle fa-5x mb-4"></i>
+                <h1 class="mb-3">¡CRÉDITO APROBADO!</h1>
+                <h4 class="mb-4">{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }}</h4>
+                <p class="lead">Su solicitud de crédito ha sido aprobada exitosamente</p>
+            </div>
+            
+            <!-- Términos del Crédito -->
+            <div class="terms-table">
+                <h3 class="text-center mb-4">
+                    <i class="fas fa-handshake me-2"></i>
+                    Términos del Crédito Aprobado
+                </h3>
+                
+                <div class="row text-center mb-4">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <h2 class="text-primary">${{ "{:,.2f}".format(solicitud.monto_aprobado) }}</h2>
+                            <p class="text-muted mb-0">Monto Aprobado</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <h2 class="text-success">{{ solicitud.tasa_interes }}%</h2>
+                            <p class="text-muted mb-0">Tasa de Interés Anual</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <h2 class="text-info">{{ solicitud.plazo_meses }}</h2>
+                            <p class="text-muted mb-0">Plazo en Meses</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla de Amortización Resumida -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-calculator me-2"></i>Resumen Financiero</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td><strong>Pago Mensual:</strong></td>
+                                <td class="text-end">
+                                    <strong>${{ "{:,.2f}".format(calcular_pago_mensual(solicitud.monto_aprobado, solicitud.tasa_interes, solicitud.plazo_meses)) }}</strong>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Total a Pagar:</td>
+                                <td class="text-end">${{ "{:,.2f}".format(calcular_pago_mensual(solicitud.monto_aprobado, solicitud.tasa_interes, solicitud.plazo_meses) * solicitud.plazo_meses) }}</td>
+                            </tr>
+                            <tr>
+                                <td>Total de Intereses:</td>
+                                <td class="text-end">${{ "{:,.2f}".format((calcular_pago_mensual(solicitud.monto_aprobado, solicitud.tasa_interes, solicitud.plazo_meses) * solicitud.plazo_meses) - solicitud.monto_aprobado) }}</td>
+                            </tr>
+                            <tr>
+                                <td>CAT Estimado:</td>
+                                <td class="text-end">{{ "%.1f"|format(solicitud.tasa_interes * 1.16) }}%</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-info-circle me-2"></i>Condiciones</h5>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Sin comisión por apertura</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Pagos mensuales fijos</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Sin penalización por pago anticipado</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Disposición inmediata</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {% elif solicitud.decision == 'rechazado' %}
+            <div class="result-card result-rejected">
+                <i class="fas fa-times-circle fa-5x mb-4"></i>
+                <h1 class="mb-3">SOLICITUD NO APROBADA</h1>
+                <h4 class="mb-4">{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }}</h4>
+                <p class="lead">Lamentamos informar que su solicitud no cumple con los criterios requeridos</p>
+            </div>
+            
+            <!-- Motivos del Rechazo -->
+            <div class="terms-table">
+                <h3 class="text-center mb-4 text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Motivos del No Aprobación
+                </h3>
+                
+                <div class="alert alert-danger">
+                    <h6><strong>Motivo Principal:</strong></h6>
+                    <p class="mb-2">{{ solicitud.motivo_rechazo or 'No especificado' }}</p>
+                    
+                    {% if solicitud.justificacion %}
+                    <h6><strong>Observaciones del Analista:</strong></h6>
+                    <p class="mb-0">{{ solicitud.justificacion }}</p>
+                    {% endif %}
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-chart-line me-2"></i>Análisis de Perfil</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <td>FICO Score:</td>
+                                <td class="text-end">
+                                    <span class="badge {{ 'bg-success' if solicitud.cliente.fico_score >= 650 else 'bg-danger' }}">
+                                        {{ solicitud.cliente.fico_score }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>TDSR:</td>
+                                <td class="text-end">
+                                    <span class="badge {{ 'bg-success' if solicitud.cliente.tdsr <= 30 else 'bg-warning' if solicitud.cliente.tdsr <= 35 else 'bg-danger' }}">
+                                        {{ solicitud.cliente.tdsr }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Score Total:</td>
+                                <td class="text-end">
+                                    <span class="badge {{ 'bg-success' if solicitud.score_total >= 300 else 'bg-warning' if solicitud.score_total >= 200 else 'bg-danger' }}">
+                                        {{ solicitud.score_total }} / 450
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-lightbulb me-2"></i>Recomendaciones</h5>
+                        <ul class="list-unstyled">
+                            {% if solicitud.cliente.fico_score < 650 %}
+                            <li><i class="fas fa-arrow-up text-warning me-2"></i>Mejorar historial crediticio</li>
+                            {% endif %}
+                            {% if solicitud.cliente.tdsr > 35 %}
+                            <li><i class="fas fa-arrow-down text-warning me-2"></i>Reducir nivel de endeudamiento</li>
+                            {% endif %}
+                            <li><i class="fas fa-clock text-info me-2"></i>Reaplique en 6 meses</li>
+                            <li><i class="fas fa-phone text-info me-2"></i>Consulte con un asesor</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {% elif solicitud.decision == 'zona_gris' %}
+            <div class="result-card result-gray-zone">
+                <i class="fas fa-exclamation-triangle fa-5x mb-4"></i>
+                <h1 class="mb-3">EVALUACIÓN ADICIONAL REQUERIDA</h1>
+                <h4 class="mb-4">{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }}</h4>
+                <p class="lead">Su solicitud requiere revisión adicional por parte de nuestro equipo especializado</p>
+            </div>
+            
+            <!-- Información de Zona Gris -->
+            <div class="terms-table">
+                <h3 class="text-center mb-4 text-warning">
+                    <i class="fas fa-hourglass-half me-2"></i>
+                    Estado de la Evaluación
+                </h3>
+                
+                <div class="alert alert-warning">
+                    <h6><strong>Motivo de Evaluación Adicional:</strong></h6>
+                    <p class="mb-2">{{ solicitud.justificacion or 'Perfil de riesgo intermedio que requiere análisis especializado' }}</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-clock me-2"></i>Proceso Siguiente</h5>
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <strong>Paso 1:</strong> Revisión por supervisor<br>
+                                <small class="text-muted">Tiempo estimado: 24-48 horas</small>
+                            </div>
+                            <div class="timeline-item">
+                                <strong>Paso 2:</strong> Análisis detallado<br>
+                                <small class="text-muted">Evaluación especializada</small>
+                            </div>
+                            <div class="timeline-item">
+                                <strong>Paso 3:</strong> Decisión final<br>
+                                <small class="text-muted">Notificación al cliente</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-envelope me-2"></i>Contacto</h5>
+                        <p><strong>Supervisor asignado:</strong> gerente1@creditoabcd.com</p>
+                        <p><strong>Referencia:</strong> {{ solicitud.numero }}</p>
+                        <p><strong>Fecha de envío:</strong> {{ solicitud.fecha_decision.strftime('%d/%m/%Y %H:%M') if solicitud.fecha_decision else 'N/A' }}</p>
+                        
+                        <div class="alert alert-info mt-3">
+                            <small>
+                                <i class="fas fa-info-circle me-2"></i>
+                                Recibirá una notificación una vez completada la evaluación adicional.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información del Cliente y Análisis -->
+    <div class="row mt-4">
+        <div class="col-lg-6">
+            <div class="card card-custom">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Información del Cliente
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Nombre:</strong><br>{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }} {{ solicitud.cliente.apellido_materno }}</p>
+                            <p><strong>RFC:</strong><br>{{ solicitud.cliente.rfc }}</p>
+                            <p><strong>Edad:</strong><br>{{ solicitud.cliente.edad }} años</p>
+                            <p><strong>Estado Civil:</strong><br>{{ solicitud.cliente.estado_civil }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Ocupación:</strong><br>{{ solicitud.cliente.ocupacion }}</p>
+                            <p><strong>Ingreso Mensual:</strong><br>${{ "{:,.2f}".format(solicitud.cliente.ingreso_mensual) }}</p>
+                            <p><strong>Antigüedad Laboral:</strong><br>{{ solicitud.cliente.antiguedad_empleo }} años</p>
+                            <p><strong>Ubicación:</strong><br>{{ solicitud.cliente.estado }}, {{ solicitud.cliente.zona }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="card card-custom">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Resumen de Análisis
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h6>Score Total</h6>
+                            <h4 class="text-primary">{{ solicitud.score_total }}</h4>
+                            <small class="text-muted">de 450</small>
+                        </div>
+                        <div class="col-4">
+                            <h6>FICO Score</h6>
+                            <h4 class="text-info">{{ solicitud.cliente.fico_score }}</h4>
+                            <small class="text-muted">de 800</small>
+                        </div>
+                        <div class="col-4">
+                            <h6>TDSR</h6>
+                            <h4 class="text-warning">{{ solicitud.cliente.tdsr }}%</h4>
+                            <small class="text-muted">endeudamiento</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <small class="text-muted">Cualitativo</small><br>
+                            <strong>{{ solicitud.score_cualitativo }}/210</strong>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">Historial</small><br>
+                            <strong>{{ solicitud.score_historial }}/150</strong>
+                        </div>
+                        <div class="col-4">
+                            <small class="text-muted">Cuantitativo</small><br>
+                            <strong>{{ solicitud.score_cuantitativo }}/90</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificado/Documento -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="certificate-section">
+                <h3><i class="fas fa-certificate me-2"></i>Documento Oficial</h3>
+                <p class="mb-3">Este documento certifica el resultado de la evaluación crediticia</p>
+                
+                <div class="row">
+                    <div class="col-md-6 text-start">
+                        <small>
+                            <strong>Analista:</strong> {{ session.analista_nombre }} ({{ session.analista_codigo }})<br>
+                            <strong>Fecha de Evaluación:</strong> {{ solicitud.fecha_decision.strftime('%d de %B de %Y') if solicitud.fecha_decision else 'N/A' }}<br>
+                            <strong>Número de Solicitud:</strong> {{ solicitud.numero }}
+                        </small>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <small>
+                            <strong>Sistema de Análisis Crediticio</strong><br>
+                            CréditoABC S.A. de C.V.<br>
+                            RFC: CAB123456789
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="row mt-4 no-print">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('nueva_solicitud') }}" class="btn btn-primary me-3">
+                <i class="fas fa-plus me-2"></i>Nueva Solicitud
+            </a>
+            <a href="{{ url_for('mis_solicitudes') }}" class="btn btn-outline-secondary me-3">
+                <i class="fas fa-list me-2"></i>Mis Solicitudes
+            </a>
+            <button onclick="enviarPorEmail()" class="btn btn-outline-info">
+                <i class="fas fa-envelope me-2"></i>Enviar por Email
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Botón Flotante para Imprimir -->
+<button onclick="window.print()" class="btn btn-primary print-button no-print">
+    <i class="fas fa-print"></i>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Función para calcular pago mensual (disponible en el template)
+function calcularPagoMensual(monto, tasa, plazo) {
+    const tasaMensual = (tasa / 100) / 12;
+    if (tasaMensual === 0) {
+        return monto / plazo;
+    }
+    return monto * (tasaMensual * Math.pow(1 + tasaMensual, plazo)) / (Math.pow(1 + tasaMensual, plazo) - 1);
+}
+
+function enviarPorEmail() {
+    const cliente = '{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }}';
+    const numero = '{{ solicitud.numero }}';
+    const decision = '{{ solicitud.decision }}';
+    
+    // Simular envío por email
+    const email = prompt('Ingrese el email destino:');
+    if (email) {
+        alert(`Resultado de solicitud ${numero} para ${cliente} enviado a ${email}`);
+        
+        // Aquí se haría la llamada real al backend para enviar el email
+        fetch('/api/enviar_resultado', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                solicitud_id: {{ solicitud.id }},
+                email_destino: email
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Email enviado correctamente');
+            } else {
+                alert('Error al enviar email: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al enviar email');
+        });
+    }
+}
+
+// Animaciones al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Animación del resultado principal
+    const resultCard = document.querySelector('.result-card');
+    if (resultCard) {
+        resultCard.style.opacity = '0';
+        resultCard.style.transform = 'translateY(50px)';
+        
+        setTimeout(() => {
+            resultCard.style.transition = 'all 0.8s ease';
+            resultCard.style.opacity = '1';
+            resultCard.style.transform = 'translateY(0)';
+        }, 300);
+    }
+    
+    // Contador animado para números
+    const numbers = document.querySelectorAll('.terms-table h2, .certificate-section h3');
+    numbers.forEach(number => {
+        const text = number.textContent;
+        const match = text.match(/[\d,]+\.?\d*/);
+        if (match) {
+            const finalValue = parseFloat(match[0].replace(/,/g, ''));
+            if (!isNaN(finalValue)) {
+                animateNumber(number, finalValue, text);
+            }
+        }
+    });
+});
+
+function animateNumber(element, target, originalText) {
+    let current = 0;
+    const increment = target / 50;
+    const interval = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+            current = target;
+            clearInterval(interval);
+        }
+        
+        // Mantener el formato original
+        const formatted = originalText.replace(/[\d,]+\.?\d*/, current.toLocaleString());
+        element.textContent = formatted;
+    }, 20);
+}
+
+// Función para generar PDF (opcional)
+function generarPDF() {
+    window.print();
+}
+</script>
+{% endblock %}
+
+<!-- Función helper para calcular pago mensual -->
+{% set calcular_pago_mensual = calcular_pago_mensual_helper %}
