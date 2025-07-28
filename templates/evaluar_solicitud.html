@@ -1,0 +1,589 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluar Solicitud {{ solicitud.numero }} - Sistema de Análisis Crediticio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .score-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .score-breakdown {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+    }
+    
+    .risk-indicator {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        text-align: center;
+        margin: 10px 0;
+    }
+    
+    .risk-low { background: #d4edda; color: #155724; }
+    .risk-medium { background: #fff3cd; color: #856404; }
+    .risk-high { background: #f8d7da; color: #721c24; }
+    
+    .decision-buttons {
+        position: sticky;
+        bottom: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
+        margin-top: 30px;
+    }
+    
+    .client-summary {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .validation-status {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 10px;
+    }
+    
+    .validation-ok { background: #28a745; }
+    .validation-error { background: #dc3545; }
+    
+    @media (max-width: 768px) {
+        .decision-buttons {
+            position: relative;
+            bottom: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card card-custom">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-1">
+                                <i class="fas fa-search text-info me-3"></i>
+                                Evaluación de Solicitud {{ solicitud.numero }}
+                            </h1>
+                            <p class="text-muted mb-0">
+                                Cliente: <strong>{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }}</strong> |
+                                RFC: <strong>{{ solicitud.cliente.rfc }}</strong>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <span class="badge bg-info fs-6 me-2">{{ solicitud.estado.title() }}</span>
+                            <a href="{{ url_for('mis_solicitudes') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Volver
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Información del Cliente -->
+        <div class="col-lg-4 mb-4">
+            <div class="client-summary">
+                <h5 class="mb-3">
+                    <i class="fas fa-user me-2"></i>
+                    Resumen del Cliente
+                </h5>
+                
+                <div class="mb-3">
+                    <strong>Datos Personales:</strong><br>
+                    <small class="text-muted">
+                        {{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }} {{ solicitud.cliente.apellido_materno }}<br>
+                        {{ solicitud.cliente.edad }} años, {{ solicitud.cliente.sexo|replace('M', 'Masculino')|replace('F', 'Femenino') }}<br>
+                        {{ solicitud.cliente.estado_civil }}, {{ solicitud.cliente.dependientes }} dependientes
+                    </small>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Ubicación:</strong><br>
+                    <small class="text-muted">
+                        {{ solicitud.cliente.colonia }}, {{ solicitud.cliente.municipio }}<br>
+                        {{ solicitud.cliente.estado }} ({{ solicitud.cliente.codigo_postal }})<br>
+                        Zona: {{ solicitud.cliente.zona }}
+                    </small>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Información Laboral:</strong><br>
+                    <small class="text-muted">
+                        {{ solicitud.cliente.ocupacion }}<br>
+                        Antigüedad: {{ solicitud.cliente.antiguedad_empleo }} años<br>
+                        Estudios: {{ solicitud.cliente.nivel_estudios }}
+                    </small>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Datos Económicos:</strong><br>
+                    <small class="text-muted">
+                        Ingreso: ${{ "{:,.2f}".format(solicitud.cliente.ingreso_mensual) }}<br>
+                        Pagos: ${{ "{:,.2f}".format(solicitud.cliente.pagos_minimos) }}<br>
+                        TDSR: {{ solicitud.cliente.tdsr }}%<br>
+                        FICO Score: {{ solicitud.cliente.fico_score }}
+                    </small>
+                </div>
+            </div>
+
+            <!-- Validaciones -->
+            <div class="card card-custom">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Estado de Validaciones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <span class="validation-status {{ 'validation-ok' if solicitud.firma_solicitud else 'validation-error' }}"></span>
+                        Firma de Solicitud
+                    </div>
+                    <div class="mb-2">
+                        <span class="validation-status {{ 'validation-ok' if solicitud.validacion_id else 'validation-error' }}"></span>
+                        Validación de ID
+                    </div>
+                    <div class="mb-2">
+                        <span class="validation-status {{ 'validation-ok' if solicitud.validacion_domicilio else 'validation-error' }}"></span>
+                        Validación de Domicilio
+                    </div>
+                    <div class="mb-2">
+                        <span class="validation-status {{ 'validation-ok' if solicitud.validacion_ingresos else 'validation-error' }}"></span>
+                        Validación de Ingresos
+                    </div>
+                    <div class="mb-2">
+                        <span class="validation-status {{ 'validation-ok' if solicitud.comprobante_ingresos else 'validation-error' }}"></span>
+                        Comprobante de Ingresos
+                    </div>
+                    <div class="mb-2">
+                        <span class="validation-status {{ 'validation-ok' if solicitud.validacion_csf else 'validation-error' }}"></span>
+                        Constancia Situación Fiscal
+                    </div>
+                    <div class="mb-2">
+                        <span class="validation-status {{ 'validation-ok' if solicitud.validacion_carta_sic else 'validation-error' }}"></span>
+                        Carta Autorización SIC
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scoring y Análisis -->
+        <div class="col-lg-8 mb-4">
+            <!-- Score Total -->
+            <div class="score-card">
+                <h2 class="mb-3">Score Total: {{ solicitud.score_total }} / 450</h2>
+                <div class="progress mb-3" style="height: 20px;">
+                    <div class="progress-bar bg-light" 
+                         role="progressbar" 
+                         style="width: {{ (solicitud.score_total / 450 * 100)|round(1) }}%; color: #2c3e50; font-weight: bold;">
+                        {{ (solicitud.score_total / 450 * 100)|round(1) }}%
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="score-breakdown">
+                            <h6>Variables Cualitativas</h6>
+                            <h4>{{ solicitud.score_cualitativo }} / 210</h4>
+                            <small>Peso: 30%</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="score-breakdown">
+                            <h6>Historial Crediticio</h6>
+                            <h4>{{ solicitud.score_historial }} / 150</h4>
+                            <small>Peso: 30%</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="score-breakdown">
+                            <h6>Variables Cuantitativas</h6>
+                            <h4>{{ solicitud.score_cuantitativo }} / 90</h4>
+                            <small>Peso: 40%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Análisis de Riesgo -->
+            <div class="card card-custom mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Análisis de Riesgo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <h6>FICO Score</h6>
+                            {% if solicitud.cliente.fico_score >= 700 %}
+                                <div class="risk-indicator risk-low">Excelente ({{ solicitud.cliente.fico_score }})</div>
+                            {% elif solicitud.cliente.fico_score >= 650 %}
+                                <div class="risk-indicator risk-medium">Bueno ({{ solicitud.cliente.fico_score }})</div>
+                            {% else %}
+                                <div class="risk-indicator risk-high">Alto Riesgo ({{ solicitud.cliente.fico_score }})</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <h6>TDSR (Endeudamiento)</h6>
+                            {% if solicitud.cliente.tdsr <= 30 %}
+                                <div class="risk-indicator risk-low">Bajo ({{ solicitud.cliente.tdsr }}%)</div>
+                            {% elif solicitud.cliente.tdsr <= 35 %}
+                                <div class="risk-indicator risk-medium">Moderado ({{ solicitud.cliente.tdsr }}%)</div>
+                            {% else %}
+                                <div class="risk-indicator risk-high">Alto ({{ solicitud.cliente.tdsr }}%)</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <h6>Score Total</h6>
+                            {% if solicitud.score_total >= 300 %}
+                                <div class="risk-indicator risk-low">Aprobable ({{ solicitud.score_total }})</div>
+                            {% elif solicitud.score_total >= 200 %}
+                                <div class="risk-indicator risk-medium">Zona Gris ({{ solicitud.score_total }})</div>
+                            {% else %}
+                                <div class="risk-indicator risk-high">Rechazar ({{ solicitud.score_total }})</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Datos de Buró -->
+            <div class="card card-custom mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>
+                        Información de Buró de Crédito
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <strong>Última Calificación SIC:</strong><br>
+                            {% if solicitud.ultima_calificacion == '1' %}
+                                <span class="badge bg-success">1 - Excelente</span>
+                            {% elif solicitud.ultima_calificacion == '2' %}
+                                <span class="badge bg-info">2 - Bueno</span>
+                            {% elif solicitud.ultima_calificacion == '3' %}
+                                <span class="badge bg-warning">3 - Regular</span>
+                            {% elif solicitud.ultima_calificacion == '4' %}
+                                <span class="badge bg-danger">4 - Malo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ solicitud.ultima_calificacion or 'N/A' }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <strong>MOP 6 meses:</strong><br>
+                            <span class="badge bg-secondary">{{ solicitud.mop_6 or 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <strong>MOP 12 meses:</strong><br>
+                            <span class="badge bg-secondary">{{ solicitud.mop_12 or 'N/A' }}</span>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <strong>Consultas SIC:</strong><br>
+                            {% if solicitud.num_consultas <= 5 %}
+                                <span class="badge bg-success">{{ solicitud.num_consultas }} consultas</span>
+                            {% elif solicitud.num_consultas <= 10 %}
+                                <span class="badge bg-warning">{{ solicitud.num_consultas }} consultas</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ solicitud.num_consultas }} consultas</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recomendación Automática -->
+            <div class="card card-custom mb-4">
+                <div class="card-header bg-transparent">
+                    <h5 class="mb-0">
+                        <i class="fas fa-robot me-2"></i>
+                        Recomendación Automática del Sistema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <button type="button" class="btn btn-primary" onclick="obtenerRecomendacion()">
+                        <i class="fas fa-magic me-2"></i>
+                        Generar Recomendación Automática
+                    </button>
+                    
+                    <div id="recomendacionAutomatica" class="mt-3" style="display: none;">
+                        <!-- Se llena via JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario de Decisión -->
+    <div class="decision-buttons">
+        <form method="POST" action="{{ url_for('tomar_decision', id=solicitud.id) }}" class="needs-validation" novalidate>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="decision_manual" class="form-label fw-bold">
+                        <i class="fas fa-gavel me-2"></i>
+                        Decisión Final
+                    </label>
+                    <select class="form-control form-control-custom" id="decision_manual" name="decision_manual" required onchange="toggleDecisionFields()">
+                        <option value="">Seleccionar decisión...</option>
+                        <option value="aprobado">✅ Aprobar Crédito</option>
+                        <option value="rechazado">❌ Rechazar Crédito</option>
+                        <option value="zona_gris">⚠️ Enviar a Zona Gris</option>
+                        <option value="automatica">🤖 Usar Recomendación Automática</option>
+                    </select>
+                    <div class="invalid-feedback">
+                        Debe seleccionar una decisión.
+                    </div>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="justificacion" class="form-label fw-bold">
+                        Justificación de la Decisión
+                    </label>
+                    <textarea class="form-control form-control-custom" 
+                              id="justificacion" 
+                              name="justificacion" 
+                              rows="3" 
+                              placeholder="Explique las razones de su decisión..."
+                              required></textarea>
+                    <div class="invalid-feedback">
+                        La justificación es obligatoria.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campos para Aprobación -->
+            <div id="camposAprobacion" style="display: none;">
+                <hr>
+                <h6><i class="fas fa-handshake me-2"></i>Términos del Crédito Aprobado</h6>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="monto_aprobado" class="form-label">Monto Aprobado ($)</label>
+                        <input type="number" class="form-control form-control-custom" 
+                               id="monto_aprobado" name="monto_aprobado" 
+                               min="5000" max="250000" step="1000">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="tasa_interes" class="form-label">Tasa de Interés (%)</label>
+                        <input type="number" class="form-control form-control-custom" 
+                               id="tasa_interes" name="tasa_interes" 
+                               min="22" max="45" step="0.1">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="plazo_meses" class="form-label">Plazo (meses)</label>
+                        <input type="number" class="form-control form-control-custom" 
+                               id="plazo_meses" name="plazo_meses" 
+                               min="3" max="18">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campos para Rechazo -->
+            <div id="camposRechazo" style="display: none;">
+                <hr>
+                <h6><i class="fas fa-times-circle me-2"></i>Motivos del Rechazo</h6>
+                <div class="mb-3">
+                    <label for="motivo_rechazo" class="form-label">Motivo Principal del Rechazo</label>
+                    <select class="form-control form-control-custom" id="motivo_rechazo" name="motivo_rechazo">
+                        <option value="">Seleccionar motivo...</option>
+                        <option value="fico_bajo">FICO Score insuficiente</option>
+                        <option value="tdsr_alto">TDSR muy alto</option>
+                        <option value="score_bajo">Score total insuficiente</option>
+                        <option value="validaciones_faltantes">Validaciones faltantes</option>
+                        <option value="ingresos_insuficientes">Ingresos insuficientes</option>
+                        <option value="historial_malo">Mal historial crediticio</option>
+                        <option value="otros">Otros motivos</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success btn-lg me-3" onclick="return confirmarDecision()">
+                    <i class="fas fa-save me-2"></i>
+                    Confirmar Decisión
+                </button>
+                <a href="{{ url_for('mis_solicitudes') }}" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-times me-2"></i>
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleDecisionFields() {
+    const decision = document.getElementById('decision_manual').value;
+    const camposAprobacion = document.getElementById('camposAprobacion');
+    const camposRechazo = document.getElementById('camposRechazo');
+    
+    // Ocultar todos los campos
+    camposAprobacion.style.display = 'none';
+    camposRechazo.style.display = 'none';
+    
+    // Mostrar campos según la decisión
+    if (decision === 'aprobado') {
+        camposAprobacion.style.display = 'block';
+        
+        // Sugerir valores por defecto
+        const ingresoMensual = {{ solicitud.cliente.ingreso_mensual }};
+        const montoSugerido = Math.min(ingresoMensual * 8, 150000);
+        
+        document.getElementById('monto_aprobado').value = montoSugerido;
+        document.getElementById('tasa_interes').value = 28.5;
+        document.getElementById('plazo_meses').value = 12;
+    } else if (decision === 'rechazado') {
+        camposRechazo.style.display = 'block';
+    }
+}
+
+function obtenerRecomendacion() {
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analizando...';
+    btn.disabled = true;
+    
+    // Simular llamada a API de recomendación
+    setTimeout(function() {
+        const ficoScore = {{ solicitud.cliente.fico_score }};
+        const tdsr = {{ solicitud.cliente.tdsr }};
+        const scoreTotal = {{ solicitud.score_total }};
+        
+        let recomendacion = '';
+        let decision = '';
+        
+        if (ficoScore < 600 || tdsr > 40 || scoreTotal < 150) {
+            decision = 'rechazado';
+            recomendacion = `
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-times-circle me-2"></i>Recomendación: RECHAZAR</h6>
+                    <ul class="mb-0">
+                        ${ficoScore < 600 ? '<li>FICO Score muy bajo (' + ficoScore + ' < 600)</li>' : ''}
+                        ${tdsr > 40 ? '<li>TDSR muy alto (' + tdsr + '% > 40%)</li>' : ''}
+                        ${scoreTotal < 150 ? '<li>Score total insuficiente (' + scoreTotal + ' < 150)</li>' : ''}
+                    </ul>
+                </div>
+            `;
+        } else if (ficoScore >= 650 && tdsr <= 30 && scoreTotal >= 300) {
+            decision = 'aprobado';
+            const montoSugerido = Math.min({{ solicitud.cliente.ingreso_mensual }} * 8, 200000);
+            recomendacion = `
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-check-circle me-2"></i>Recomendación: APROBAR</h6>
+                    <p><strong>Términos sugeridos:</strong></p>
+                    <ul class="mb-0">
+                        <li>Monto: ${montoSugerido.toLocaleString()}</li>
+                        <li>Tasa: 26.5% anual</li>
+                        <li>Plazo: 12 meses</li>
+                    </ul>
+                </div>
+            `;
+        } else {
+            decision = 'zona_gris';
+            recomendacion = `
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Recomendación: ZONA GRIS</h6>
+                    <p>El perfil presenta características mixtas que requieren evaluación adicional por parte de un supervisor.</p>
+                    <p><strong>Motivo:</strong> Perfil de riesgo intermedio que no cumple todos los criterios de aprobación automática.</p>
+                </div>
+            `;
+        }
+        
+        document.getElementById('recomendacionAutomatica').innerHTML = recomendacion;
+        document.getElementById('recomendacionAutomatica').style.display = 'block';
+        
+        // Restaurar botón
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        
+        // Auto-seleccionar la recomendación
+        document.getElementById('decision_manual').value = decision;
+        toggleDecisionFields();
+        
+    }, 2000);
+}
+
+function confirmarDecision() {
+    const decision = document.getElementById('decision_manual').value;
+    const justificacion = document.getElementById('justificacion').value;
+    
+    if (!decision || !justificacion.trim()) {
+        alert('Por favor complete todos los campos obligatorios.');
+        return false;
+    }
+    
+    const cliente = '{{ solicitud.cliente.nombre }} {{ solicitud.cliente.apellido_paterno }}';
+    let mensaje = `¿Confirma la decisión de ${decision.toUpperCase()} para el cliente ${cliente}?`;
+    
+    if (decision === 'aprobado') {
+        const monto = document.getElementById('monto_aprobado').value;
+        const tasa = document.getElementById('tasa_interes').value;
+        const plazo = document.getElementById('plazo_meses').value;
+        
+        if (!monto || !tasa || !plazo) {
+            alert('Por favor complete todos los términos del crédito.');
+            return false;
+        }
+        
+        mensaje += `\n\nTérminos:\n- Monto: ${parseFloat(monto).toLocaleString()}\n- Tasa: ${tasa}%\n- Plazo: ${plazo} meses`;
+    }
+    
+    return confirm(mensaje + '\n\nEsta acción no se puede deshacer.');
+}
+
+// Validación en tiempo real
+document.addEventListener('DOMContentLoaded', function() {
+    // Calcular pago mensual automáticamente
+    function calcularPagoMensual() {
+        const monto = parseFloat(document.getElementById('monto_aprobado')?.value) || 0;
+        const tasa = parseFloat(document.getElementById('tasa_interes')?.value) || 0;
+        const plazo = parseInt(document.getElementById('plazo_meses')?.value) || 0;
+        
+        if (monto && tasa && plazo) {
+            const tasaMensual = (tasa / 100) / 12;
+            const pagoMensual = monto * (tasaMensual * Math.pow(1 + tasaMensual, plazo)) / (Math.pow(1 + tasaMensual, plazo) - 1);
+            
+            // Mostrar el pago mensual calculado
+            const ingresoCliente = {{ solicitud.cliente.ingreso_mensual }};
+            const porcentajeIngreso = (pagoMensual / ingresoCliente) * 100;
+            
+            console.log(`Pago mensual estimado: ${pagoMensual.toFixed(2)} (${porcentajeIngreso.toFixed(1)}% del ingreso)`);
+        }
+    }
+    
+    // Agregar listeners si existen los campos
+    ['monto_aprobado', 'tasa_interes', 'plazo_meses'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', calcularPagoMensual);
+        }
+    });
+});
+</script>
+{% endblock %}
