@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Sistema de Análisis Crediticio
-Aplicación Flask completa y funcional
+Aplicación Flask corregida para coincidir con templates existentes
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
@@ -14,7 +14,7 @@ import random
 import string
 
 # ===== CONFIGURACIÓN DE LA APLICACIÓN =====
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates')  # ← CORREGIDO: usar plantillas
 app.secret_key = 'sistema_credito_2025_clave_segura'
 
 # ===== DECORADOR PARA LOGIN REQUERIDO =====
@@ -114,10 +114,8 @@ def analista_existe(rfc):
 
 def generar_codigo_analista():
     """Generar código único de analista"""
-    # Generar código alfanumérico
     codigo = 'E' + ''.join(random.choices(string.digits, k=3))
     
-    # Verificar que no exista
     analistas = cargar_analistas()
     while any(analista.get('codigo') == codigo for analista in analistas):
         codigo = 'E' + ''.join(random.choices(string.digits, k=3))
@@ -129,7 +127,7 @@ def generar_codigo_analista():
 @app.route('/')
 def index():
     """Página de inicio"""
-    return render_template('index.html')
+    return render_template('index.html')  # ← CORREGIDO
 
 @app.route('/login_analista', methods=['GET', 'POST'])
 def login_analista():
@@ -143,7 +141,6 @@ def login_analista():
                 flash('Ingrese código y NIP', 'error')
                 return render_template('login_analista.html')
             
-            # Buscar analista
             analistas = cargar_analistas()
             analista = next((a for a in analistas if a.get('codigo') == codigo), None)
             
@@ -166,7 +163,6 @@ def login_analista():
             
             flash(f'Bienvenido, {analista.get("nombre")}', 'success')
             
-            # Redirigir según el rol
             if analista.get('rol') == 'admin':
                 return redirect(url_for('panel_admin'))
             else:
@@ -189,7 +185,6 @@ def login_admin():
                 flash('Ingrese la clave de administrador', 'error')
                 return render_template('login_admin.html')
             
-            # Verificar clave de administrador
             if clave == 'admin123':
                 session['admin_activo'] = True
                 session['analista_id'] = 'RAG123'
@@ -208,23 +203,20 @@ def login_admin():
     
     return render_template('login_admin.html')
 
-@app.route('/enregistro_analista', methods=['GET', 'POST'])
-def enregistro_analista():
+@app.route('/registro_analista', methods=['GET', 'POST'])  # ← CORREGIDO
+def registro_analista():  # ← CORREGIDO
     """Registro de nuevo analista"""
     if request.method == 'POST':
         try:
-            # Obtener datos del formulario de forma segura
             nombre_completo = request.form.get('nombre_completo', '').strip()
             rfc = request.form.get('rfc', '').strip().upper()
             telefono = request.form.get('telefono', '').strip()
             nip = request.form.get('nip', '').strip()
             
-            # Validaciones básicas
             if not all([nombre_completo, rfc, telefono, nip]):
                 flash('Todos los campos son obligatorios', 'error')
                 return render_template('registro_analista.html')
             
-            # Dividir nombre completo
             partes_nombre = nombre_completo.split()
             if len(partes_nombre) < 2:
                 flash('Ingrese nombre y apellido completos', 'error')
@@ -234,25 +226,20 @@ def enregistro_analista():
             apellido_paterno = partes_nombre[1] if len(partes_nombre) > 1 else ''
             apellido_materno = ' '.join(partes_nombre[2:]) if len(partes_nombre) > 2 else ''
             
-            # Validar RFC
             if len(rfc) != 13:
                 flash('RFC debe tener 13 caracteres', 'error')
                 return render_template('registro_analista.html')
             
-            # Validar NIP
             if len(nip) != 4 or not nip.isdigit():
                 flash('NIP debe ser de 4 dígitos numéricos', 'error')
                 return render_template('registro_analista.html')
             
-            # Verificar si ya existe
             if analista_existe(rfc):
                 flash('Ya existe un analista con ese RFC', 'error')
                 return render_template('registro_analista.html')
             
-            # Generar código de analista
             codigo_analista = generar_codigo_analista()
             
-            # Crear nuevo analista
             nuevo_analista = {
                 'codigo': codigo_analista,
                 'nombre': nombre,
@@ -266,7 +253,6 @@ def enregistro_analista():
                 'fecha_registro': datetime.now().isoformat()
             }
             
-            # Guardar en la base de datos
             if guardar_analista(nuevo_analista):
                 flash(f'Solicitud enviada exitosamente. Su código de analista es: {codigo_analista}', 'success')
                 return redirect(url_for('login_analista'))
@@ -284,11 +270,8 @@ def enregistro_analista():
 @login_required
 def captura_analista():
     """Dashboard del analista"""
-    # Cargar estadísticas del analista
     analista_codigo = session.get('analista_id')
     
-    # Aquí cargarías las solicitudes del analista desde la base de datos
-    # Por ahora, datos de ejemplo
     estadisticas = {
         'solicitudes_totales': 15,
         'solicitudes_pendientes': 3,
@@ -307,25 +290,42 @@ def panel_admin():
         flash('Acceso denegado. Solo administradores.', 'error')
         return redirect(url_for('captura_analista'))
     
-    # Cargar analistas pendientes de aprobación
-    analistas = cargar_analistas()
-    pendientes = [a for a in analistas if a.get('estado') == 'pendiente']
-    aprobados = [a for a in analistas if a.get('estado') == 'aprobado' and a.get('rol') != 'admin']
-    
-    estadisticas = {
-        'total_analistas': len(analistas),
-        'pendientes': len(pendientes),
-        'aprobados': len(aprobados),
-        'solicitudes_totales': 45,  # Esto vendría de la base de datos
-        'solicitudes_hoy': 8
-    }
-    
-    return render_template('panel_admin.html', 
-                         analistas_pendientes=pendientes,
-                         analistas_aprobados=aprobados,
-                         stats=estadisticas)
+    try:
+        analistas = cargar_analistas()
+        pendientes = [a for a in analistas if a.get('estado') == 'pendiente']
+        aprobados = [a for a in analistas if a.get('estado') == 'aprobado' and a.get('rol') != 'admin']
+        
+        estadisticas = {
+            'total_analistas': len([a for a in analistas if a.get('rol') != 'admin']),
+            'pendientes': len(pendientes),
+            'aprobados': len(aprobados),
+            'solicitudes_totales': 45,
+            'solicitudes_hoy': 8
+        }
+        
+        return render_template('panel_admin.html', 
+                             analistas_pendientes=pendientes,
+                             analistas_aprobados=aprobados,
+                             stats=estadisticas)
+                             
+    except Exception as e:
+        flash(f'Error al cargar el panel administrativo: {str(e)}', 'error')
+        return redirect(url_for('index'))
 
-@app.route('/aprobar_analista/<codigo>')
+@app.route('/gestionar_analistas')
+@login_required
+def gestionar_analistas():
+    """Gestionar analistas"""
+    if session.get('analista_rol') != 'admin':
+        flash('Acceso denegado', 'error')
+        return redirect(url_for('captura_analista'))
+    
+    analistas = cargar_analistas()
+    todos_analistas = [a for a in analistas if a.get('rol') != 'admin']
+    
+    return render_template('gestionar_analistas.html', analistas=todos_analistas)
+
+@app.route('/aprobar_analista/<codigo>', methods=['POST'])
 @login_required
 def aprobar_analista(codigo):
     """Aprobar un analista pendiente"""
@@ -340,7 +340,7 @@ def aprobar_analista(codigo):
     
     return redirect(url_for('panel_admin'))
 
-@app.route('/rechazar_analista/<codigo>')
+@app.route('/rechazar_analista/<codigo>', methods=['POST'])
 @login_required
 def rechazar_analista(codigo):
     """Rechazar un analista pendiente"""
@@ -363,13 +363,19 @@ def logout():
     flash(f'Hasta luego, {nombre}. Sesión cerrada correctamente.', 'info')
     return redirect(url_for('index'))
 
-# ===== RUTAS ADICIONALES PARA DESARROLLO FUTURO =====
+# ===== RUTAS ADICIONALES =====
 
 @app.route('/nueva_solicitud')
 @login_required
 def nueva_solicitud():
     """Formulario para nueva solicitud de crédito"""
     return render_template('nueva_solicitud.html')
+
+@app.route('/evaluar_solicitud')
+@login_required
+def evaluar_solicitud():
+    """Evaluar solicitud de crédito"""
+    return render_template('evaluar_solicitud.html')
 
 @app.route('/mis_solicitudes')
 @login_required
@@ -387,17 +393,35 @@ def todas_solicitudes():
     
     return render_template('todas_solicitudes.html')
 
+@app.route('/resultado_solicitud')
+@login_required
+def resultado_solicitud():
+    """Ver resultado de solicitud"""
+    return render_template('resultado_solicitud.html')
+
+@app.route('/reglas_negocio')
+@login_required
+def reglas_negocio():
+    """Configuración de reglas de negocio"""
+    if session.get('analista_rol') != 'admin':
+        flash('Acceso denegado', 'error')
+        return redirect(url_for('captura_analista'))
+    
+    return render_template('reglas_negocio.html')
+
 # ===== MANEJO DE ERRORES =====
 
 @app.errorhandler(404)
 def page_not_found(e):
     """Página no encontrada"""
-    return render_template('error.html', error_code=404, error_message="Página no encontrada"), 404
+    flash('La página solicitada no fue encontrada', 'error')
+    return redirect(url_for('index'))
 
 @app.errorhandler(500)
 def internal_server_error(e):
     """Error interno del servidor"""
-    return render_template('error.html', error_code=500, error_message="Error interno del servidor"), 500
+    flash('Error interno del servidor', 'error')
+    return redirect(url_for('index'))
 
 # ===== INICIALIZACIÓN DE LA APLICACIÓN =====
 
@@ -408,7 +432,6 @@ if __name__ == '__main__':
     print("   - Analista: E001 / 1234")
     print("🌐 Aplicación ejecutándose en: http://localhost:5000")
     
-    # Crear archivos de datos si no existen
     cargar_analistas()
     
     app.run(debug=True, host='0.0.0.0', port=5000)
