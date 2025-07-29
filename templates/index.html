@@ -3,198 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Curso de Análisis de Crédito - SkillsCert</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Sistema de Análisis Crediticio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            display: flex;
+            align-items: center;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .hero-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-        }
+        
         .welcome-card {
+            background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            border: none;
-            overflow: hidden;
-        }
-        .welcome-header {
-            background: linear-gradient(45deg, #2c3e50, #34495e);
-            color: white;
-            padding: 40px 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
             text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
         }
-        .welcome-body {
-            padding: 40px 30px;
-            background: white;
+        
+        .logo-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 20px;
         }
-        .btn-access {
+        
+        .btn-custom {
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 10px;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+        
+        .btn-analista {
             background: linear-gradient(45deg, #667eea, #764ba2);
             border: none;
-            border-radius: 25px;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: 600;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        .btn-access:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
             color: white;
         }
-        .feature-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
+        
+        .btn-analista:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             color: white;
-            font-size: 30px;
         }
-        .course-info {
-            background: rgba(255, 255, 255, 0.1);
+        
+        .btn-admin {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            border: none;
+            color: white;
+        }
+        
+        .btn-admin:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        .btn-registro {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            border: none;
+            color: white;
+        }
+        
+        .btn-registro:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        .feature-card {
+            background: white;
             border-radius: 15px;
             padding: 20px;
-            margin: 20px 0;
-            color: white;
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            height: 100%;
         }
-        .admin-link {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            text-decoration: none;
-            font-size: 12px;
-            transition: all 0.3s ease;
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
         }
-        .admin-link:hover {
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
-            text-decoration: none;
+        
+        .feature-icon {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .credentials-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <!-- Enlace de administrador discreto -->
-    <a href="{{ url_for('login_admin') }}" class="admin-link">
-        <i class="fas fa-cog"></i> Admin
-    </a>
-
-    <div class="hero-container">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-lg-10 col-xl-8">
-                    <div class="welcome-card">
-                        <!-- Header -->
-                        <div class="welcome-header">
-                            <h1 class="display-4 mb-3">
-                                <i class="fas fa-graduation-cap"></i> 
-                                Bienvenido al Curso de Análisis de Crédito
-                            </h1>
-                            <p class="lead mb-0">Desarrolla competencias profesionales en evaluación crediticia</p>
-                            
-                            <div class="course-info">
-                                <div class="row text-center">
-                                    <div class="col-md-4">
-                                        <h6><i class="fas fa-certificate"></i> Certificación</h6>
-                                        <small>SkillsCert Profesional</small>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <h6><i class="fas fa-clock"></i> Duración</h6>
-                                        <small>Modalidad Práctica</small>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <h6><i class="fas fa-users"></i> Modalidad</h6>
-                                        <small>Individual Guiada</small>
-                                    </div>
-                                </div>
-                            </div>
+    <div class="container">
+        <div class="welcome-card">
+            <div class="logo-icon">
+                <i class="fas fa-university"></i>
+            </div>
+            
+            <h1 class="display-4 fw-bold text-primary mb-3">
+                Sistema de Análisis Crediticio
+            </h1>
+            
+            <p class="lead text-muted mb-4">
+                Plataforma profesional para evaluación y gestión de riesgos crediticios
+            </p>
+            
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-calculator"></i>
                         </div>
-
-                        <!-- Body -->
-                        <div class="welcome-body">
-                            <div class="text-center mb-4">
-                                <h3>Sistema de Práctica Profesional</h3>
-                                <p class="text-muted">Utiliza nuestro simulador para desarrollar habilidades reales de análisis crediticio</p>
-                            </div>
-
-                            <!-- Características del curso -->
-                            <div class="row mb-4">
-                                <div class="col-md-4 text-center mb-3">
-                                    <div class="feature-icon">
-                                        <i class="fas fa-calculator"></i>
-                                    </div>
-                                    <h6>Herramientas Reales</h6>
-                                    <small class="text-muted">Simulador de análisis crediticio profesional</small>
-                                </div>
-                                <div class="col-md-4 text-center mb-3">
-                                    <div class="feature-icon">
-                                        <i class="fas fa-chart-line"></i>
-                                    </div>
-                                    <h6>Casos Prácticos</h6>
-                                    <small class="text-muted">Evaluación de solicitudes reales</small>
-                                </div>
-                                <div class="col-md-4 text-center mb-3">
-                                    <div class="feature-icon">
-                                        <i class="fas fa-award"></i>
-                                    </div>
-                                    <h6>Certificación</h6>
-                                    <small class="text-muted">Validación de competencias adquiridas</small>
-                                </div>
-                            </div>
-
-                            <!-- Pregunta principal -->
-                            <div class="text-center">
-                                <h4 class="mb-4">¿Ya tienes tu número de analista?</h4>
-                                <p class="text-muted mb-4">Para acceder al sistema de práctica necesitas un número de analista único</p>
-                                
-                                <div class="d-grid gap-3">
-                                    <button type="button" class="btn btn-access btn-lg" onclick="window.location.href='{{ url_for('login_analista') }}'">
-                                        <i class="fas fa-sign-in-alt"></i> SÍ, ya tengo mi número de analista
-                                    </button>
-                                    <button type="button" class="btn btn-outline-primary btn-lg" onclick="window.location.href='{{ url_for('registro_analista') }}'">
-                                        <i class="fas fa-user-plus"></i> NO, necesito crear mi número de analista
-                                    </button>
-                                </div>
-
-                                <!-- Información de soporte -->
-                                <div class="mt-4 p-3 bg-light rounded">
-                                    <h6><i class="fas fa-question-circle"></i> ¿Olvidaste tu información?</h6>
-                                    <p class="mb-1 small">Si olvidaste tu número de analista o NIP, solicita reposición al administrador:</p>
-                                    <p class="mb-0">
-                                        <i class="fas fa-envelope"></i> 
-                                        <a href="mailto:info@skillscert.com" class="text-decoration-none">
-                                            info@skillscert.com
-                                        </a>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                        <h5>Scoring Automático</h5>
+                        <p class="text-muted small">Motor de scoring basado en mejores prácticas financieras</p>
                     </div>
-
-                    <!-- Footer informativo -->
-                    <div class="text-center mt-4">
-                        <p class="text-white-50">
-                            <i class="fas fa-shield-alt"></i> 
-                            Sistema seguro y confidencial • SkillsCert 2025
-                        </p>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h5>Análisis de Riesgo</h5>
+                        <p class="text-muted small">Evaluación integral de capacidad de pago y historial</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <h5>Cumplimiento</h5>
+                        <p class="text-muted small">Controles internos y trazabilidad completa</p>
                     </div>
                 </div>
             </div>
+            
+            <div class="access-buttons">
+                <h4 class="mb-4 text-dark">Seleccione su tipo de acceso:</h4>
+                
+                <div class="d-flex flex-column flex-md-row justify-content-center gap-3 mb-4">
+                    <a href="{{ url_for('login_analista') }}" class="btn btn-analista btn-custom">
+                        <i class="fas fa-user me-2"></i>
+                        Acceso Analista
+                    </a>
+                    
+                    <a href="{{ url_for('login_admin') }}" class="btn btn-admin btn-custom">
+                        <i class="fas fa-crown me-2"></i>
+                        Acceso Administrador
+                    </a>
+                </div>
+                
+                <div class="mb-4">
+                    <a href="{{ url_for('enregistro_analista') }}" class="btn btn-registro btn-custom">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Registrarse como Analista
+                    </a>
+                </div>
+            </div>
+            
+            <div class="credentials-section">
+                <h6 class="text-dark mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Credenciales de Prueba:
+                </h6>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body text-center p-3">
+                                <h6 class="card-title text-danger">
+                                    <i class="fas fa-crown me-1"></i>
+                                    Administrador
+                                </h6>
+                                <p class="card-text mb-1">
+                                    <strong>Clave:</strong> admin123
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 bg-light">
+                            <div class="card-body text-center p-3">
+                                <h6 class="card-title text-primary">
+                                    <i class="fas fa-user me-1"></i>
+                                    Analista
+                                </h6>
+                                <p class="card-text mb-1">
+                                    <strong>Código:</strong> E001<br>
+                                    <strong>NIP:</strong> 1234
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <small class="text-muted">
+                    <i class="fas fa-graduation-cap me-1"></i>
+                    Sistema educativo para análisis crediticio profesional
+                </small>
+            </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
