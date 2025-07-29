@@ -658,6 +658,117 @@ def test_registro():
     </html>
     '''
 
+@app.route('/test_login')
+def test_login():
+    """Página de test para verificar el login"""
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test de Login - Sistema de Crédito</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                background-color: #f5f5f5;
+            }
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .test-section {
+                margin: 20px 0;
+                padding: 15px;
+                background: #f8f9fa;
+                border-radius: 5px;
+                border: 1px solid #dee2e6;
+            }
+            .credentials {
+                background: #e8f5e9;
+                padding: 10px;
+                margin: 10px 0;
+                border-radius: 3px;
+            }
+            .btn {
+                display: inline-block;
+                padding: 10px 20px;
+                margin: 5px;
+                background: #007bff;
+                color: white;
+                text-decoration: none;
+                border-radius: 4px;
+            }
+            .btn:hover {
+                background: #0056b3;
+            }
+            code {
+                background: #f0f0f0;
+                padding: 2px 4px;
+                border-radius: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🧪 Test de Login - Sistema de Crédito</h1>
+            
+            <div class="test-section">
+                <h2>👤 Credenciales de Prueba Disponibles</h2>
+                
+                <h3>1. Administrador del Sistema</h3>
+                <div class="credentials">
+                    <strong>Para login de admin:</strong><br>
+                    Usuario: <code>admin</code><br>
+                    Contraseña: <code>admin123</code>
+                </div>
+                
+                <h3>2. Analista (Administrador con rol admin)</h3>
+                <div class="credentials">
+                    <strong>Código:</strong> <code>RAG123</code><br>
+                    <strong>NIP:</strong> <code>1234</code><br>
+                    <strong>Estado:</strong> APROBADO
+                </div>
+                
+                <h3>3. Analista Juan Pérez López</h3>
+                <div class="credentials">
+                    <strong>Código:</strong> <code>E001</code><br>
+                    <strong>NIP:</strong> <code>9876</code><br>
+                    <strong>Estado:</strong> Verificar en panel de admin
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔗 Enlaces de Prueba</h2>
+                <a href="/login_analista" class="btn">Login de Analista</a>
+                <a href="/login_admin" class="btn">Login de Admin</a>
+                <a href="/captura_analista" class="btn">Registrar Nuevo Analista</a>
+                <a href="/test_registro" class="btn">Test de Registro</a>
+            </div>
+            
+            <div class="test-section">
+                <h2>🛠️ Enlaces de Debug</h2>
+                <a href="/debug_analistas" class="btn">Ver Todos los Analistas</a>
+                <a href="/" class="btn">Página Principal</a>
+            </div>
+            
+            <div class="test-section">
+                <h2>📝 Notas Importantes</h2>
+                <ul>
+                    <li>Los nuevos analistas deben ser aprobados por un administrador antes de poder iniciar sesión</li>
+                    <li>El código de analista se genera automáticamente al registrarse</li>
+                    <li>El NIP debe ser de 4 dígitos</li>
+                    <li>Para aprobar analistas, inicia sesión como administrador</li>
+                </ul>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+
 # Inicializar base de datos al arrancar
 if __name__ == '__main__':
     init_db()
