@@ -1,308 +1,414 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-import sqlite3
-import hashlib
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Sistema de Análisis Crediticio
+Aplicación Flask completa y funcional
+"""
+
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from datetime import datetime
+from functools import wraps
+import json
+import os
+import random
+import string
 
+# ===== CONFIGURACIÓN DE LA APLICACIÓN =====
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta_aqui'
+app.secret_key = 'sistema_credito_2025_clave_segura'
 
-# Función para inicializar la base de datos
-def init_db():
-    conn = sqlite3.connect('credito.db')
-    cursor = conn.cursor()
-    
-    # Tabla de analistas mejorada
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS analistas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            numero_usuario TEXT UNIQUE NOT NULL,
-            apellido_paterno TEXT NOT NULL,
-            apellido_materno TEXT NOT NULL,
-            nombre TEXT NOT NULL,
-            registro_contribuyentes TEXT NOT NULL,
-            nip TEXT NOT NULL,
-            fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            estado TEXT DEFAULT 'pendiente',
-            evaluado_por TEXT,
-            fecha_evaluacion TIMESTAMP
-        )
-    ''')
-    
-    # Tabla de administradores
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS administradores (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT UNIQUE NOT NULL,
-            nip TEXT NOT NULL,
-            nombre_completo TEXT NOT NULL
-        )
-    ''')
-    
-    # Crear administrador por defecto si no existe
-    cursor.execute('SELECT COUNT(*) FROM administradores WHERE usuario = ?', ('admin',))
-    if cursor.fetchone()[0] == 0:
-        admin_nip = hashlib.sha256('admin123'.encode()).hexdigest()
-        cursor.execute('''
-            INSERT INTO administradores (usuario, nip, nombre_completo) 
-            VALUES (?, ?, ?)
-        ''', ('admin', admin_nip, 'Administrador del Sistema'))
-    
-    conn.commit()
-    conn.close()
+# ===== DECORADOR PARA LOGIN REQUERIDO =====
+def login_required(f):
+    """Decorador para rutas que requieren login"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'analista_id' not in session:
+            flash('Debe iniciar sesión primero', 'warning')
+            return redirect(url_for('login_analista'))
+        return f(*args, **kwargs)
+    return decorated_function
 
-# Función para generar el próximo número de usuario
-def generar_numero_usuario():
-    conn = sqlite3.connect('credito.db')
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT COUNT(*) FROM analistas')
-    count = cursor.fetchone()[0]
-    
-    conn.close()
-    
-    # Formato: E-001, E-002, etc.
-    return f"E-{(count + 1):03d}"
+# ===== FUNCIONES AUXILIARES =====
 
-# Función para encriptar NIP
-def encriptar_nip(nip):
-    return hashlib.sha256(nip.encode()).hexdigest()
+def cargar_analistas():
+    """Cargar analistas desde la base de datos"""
+    try:
+        if os.path.exists('analistas.json'):
+            with open('analistas.json', 'r', encoding='utf-8') as f:
+                return json.load(f)
+        else:
+            # Crear archivo con analistas por defecto
+            analistas_default = [
+                {
+                    'codigo': 'RAG123',
+                    'nombre': 'Administrador',
+                    'apellido_paterno': 'Sistema',
+                    'apellido_materno': '',
+                    'rfc': 'ADMIN123456RF',
+                    'telefono': '5555555555',
+                    'nip': 'admin123',
+                    'estado': 'aprobado',
+                    'rol': 'admin',
+                    'fecha_registro': datetime.now().isoformat()
+                },
+                {
+                    'codigo': 'E001',
+                    'nombre': 'Juan',
+                    'apellido_paterno': 'Pérez',
+                    'apellido_materno': 'López',
+                    'rfc': 'PELJ850101ABC',
+                    'telefono': '5551234567',
+                    'nip': '1234',
+                    'estado': 'aprobado',
+                    'rol': 'analista',
+                    'fecha_registro': datetime.now().isoformat()
+                }
+            ]
+            
+            with open('analistas.json', 'w', encoding='utf-8') as f:
+                json.dump(analistas_default, f, ensure_ascii=False, indent=2)
+            
+            return analistas_default
+    except Exception as e:
+        print(f"Error cargando analistas: {e}")
+        return []
+
+def guardar_analista(analista_data):
+    """Guardar analista en la base de datos"""
+    try:
+        analistas = cargar_analistas()
+        analistas.append(analista_data)
+        
+        with open('analistas.json', 'w', encoding='utf-8') as f:
+            json.dump(analistas, f, ensure_ascii=False, indent=2, default=str)
+        
+        return True
+    except Exception as e:
+        print(f"Error guardando analista: {e}")
+        return False
+
+def actualizar_analista(codigo, nuevos_datos):
+    """Actualizar datos de un analista"""
+    try:
+        analistas = cargar_analistas()
+        for i, analista in enumerate(analistas):
+            if analista.get('codigo') == codigo:
+                analistas[i].update(nuevos_datos)
+                break
+        
+        with open('analistas.json', 'w', encoding='utf-8') as f:
+            json.dump(analistas, f, ensure_ascii=False, indent=2, default=str)
+        
+        return True
+    except Exception as e:
+        print(f"Error actualizando analista: {e}")
+        return False
+
+def analista_existe(rfc):
+    """Verificar si ya existe un analista con ese RFC"""
+    try:
+        analistas = cargar_analistas()
+        return any(analista.get('rfc') == rfc for analista in analistas)
+    except:
+        return False
+
+def generar_codigo_analista():
+    """Generar código único de analista"""
+    # Generar código alfanumérico
+    codigo = 'E' + ''.join(random.choices(string.digits, k=3))
+    
+    # Verificar que no exista
+    analistas = cargar_analistas()
+    while any(analista.get('codigo') == codigo for analista in analistas):
+        codigo = 'E' + ''.join(random.choices(string.digits, k=3))
+    
+    return codigo
+
+# ===== RUTAS PRINCIPALES =====
 
 @app.route('/')
 def index():
-    return render_template('index.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        tipo_usuario = request.form['tipo_usuario']
-        
-        if tipo_usuario == 'analista':
-            return redirect(url_for('login_analista'))
-        else:
-            return redirect(url_for('login_admin'))
-    
-    return render_template('login.html')
+    """Página de inicio"""
+    return render_template('indice.html')
 
 @app.route('/login_analista', methods=['GET', 'POST'])
 def login_analista():
+    """Login de analista"""
     if request.method == 'POST':
-        tiene_usuario = request.form.get('tiene_usuario')
-        
-        if tiene_usuario == 'si':
-            # Usuario existente
-            numero_usuario = f"E-{request.form['numero_usuario']}"
-            nip = request.form['nip']
+        try:
+            codigo = request.form.get('codigo', '').strip()
+            nip = request.form.get('nip', '').strip()
             
-            conn = sqlite3.connect('credito.db')
-            cursor = conn.cursor()
+            if not codigo or not nip:
+                flash('Ingrese código y NIP', 'error')
+                return render_template('login_analista.html')
             
-            nip_encriptado = encriptar_nip(nip)
-            cursor.execute('''
-                SELECT * FROM analistas 
-                WHERE numero_usuario = ? AND nip = ? AND estado = 'aprobado'
-            ''', (numero_usuario, nip_encriptado))
+            # Buscar analista
+            analistas = cargar_analistas()
+            analista = next((a for a in analistas if a.get('codigo') == codigo), None)
             
-            analista = cursor.fetchone()
-            conn.close()
+            if not analista:
+                flash('Código de analista no encontrado', 'error')
+                return render_template('login_analista.html')
             
-            if analista:
-                session['user_type'] = 'analista'
-                session['user_id'] = analista[1]  # numero_usuario
-                session['user_name'] = f"{analista[4]} {analista[2]} {analista[3]}"  # nombre + apellidos
-                flash('Acceso exitoso', 'success')
-                return redirect(url_for('panel_analista'))
+            if analista.get('estado') != 'aprobado':
+                flash('Su cuenta está pendiente de aprobación', 'warning')
+                return render_template('login_analista.html')
+            
+            if analista.get('nip') != nip:
+                flash('NIP incorrecto', 'error')
+                return render_template('login_analista.html')
+            
+            # Login exitoso
+            session['analista_id'] = analista.get('codigo')
+            session['analista_nombre'] = analista.get('nombre')
+            session['analista_rol'] = analista.get('rol', 'analista')
+            
+            flash(f'Bienvenido, {analista.get("nombre")}', 'success')
+            
+            # Redirigir según el rol
+            if analista.get('rol') == 'admin':
+                return redirect(url_for('panel_admin'))
             else:
-                flash('Credenciales incorrectas o cuenta no aprobada', 'error')
+                return redirect(url_for('captura_analista'))
                 
-        else:
-            # Usuario nuevo - registro
-            return redirect(url_for('registro_analista'))
+        except Exception as e:
+            flash(f'Error en el login: {str(e)}', 'error')
+            return render_template('login_analista.html')
     
     return render_template('login_analista.html')
 
-@app.route('/registro_analista', methods=['GET', 'POST'])
-def registro_analista():
+@app.route('/login_admin', methods=['GET', 'POST'])
+def login_admin():
+    """Login de administrador"""
     if request.method == 'POST':
-        apellido_paterno = request.form['apellido_paterno'].strip().upper()
-        apellido_materno = request.form['apellido_materno'].strip().upper()
-        nombre = request.form['nombre'].strip().upper()
-        registro_contribuyentes = request.form['registro_contribuyentes'].strip().upper()
-        nip = request.form['nip']
-        confirmar_nip = request.form['confirmar_nip']
-        
-        # Validaciones
-        if not all([apellido_paterno, apellido_materno, nombre, registro_contribuyentes, nip]):
-            flash('Todos los campos son obligatorios', 'error')
-            return render_template('registro_analista.html')
-        
-        if nip != confirmar_nip:
-            flash('Los NIPs no coinciden', 'error')
-            return render_template('registro_analista.html')
-        
-        if len(nip) < 4:
-            flash('El NIP debe tener al menos 4 caracteres', 'error')
-            return render_template('registro_analista.html')
-        
-        # Verificar si ya existe el registro de contribuyentes
-        conn = sqlite3.connect('credito.db')
-        cursor = conn.cursor()
-        
-        cursor.execute('SELECT COUNT(*) FROM analistas WHERE registro_contribuyentes = ?', 
-                      (registro_contribuyentes,))
-        if cursor.fetchone()[0] > 0:
-            flash('Este registro de contribuyentes ya está registrado', 'error')
-            conn.close()
-            return render_template('registro_analista.html')
-        
-        # Generar número de usuario y registrar
-        numero_usuario = generar_numero_usuario()
-        nip_encriptado = encriptar_nip(nip)
-        
         try:
-            cursor.execute('''
-                INSERT INTO analistas (numero_usuario, apellido_paterno, apellido_materno, 
-                                     nombre, registro_contribuyentes, nip, estado) 
-                VALUES (?, ?, ?, ?, ?, ?, 'pendiente')
-            ''', (numero_usuario, apellido_paterno, apellido_materno, nombre, 
-                  registro_contribuyentes, nip_encriptado))
+            clave = request.form.get('clave', '').strip()
             
-            conn.commit()
-            conn.close()
+            if not clave:
+                flash('Ingrese la clave de administrador', 'error')
+                return render_template('login_admin.html')
             
-            flash(f'Registro exitoso. Tu número de usuario es: {numero_usuario}. Tu cuenta está pendiente de aprobación.', 'success')
-            return redirect(url_for('login_analista'))
+            # Verificar clave de administrador
+            if clave == 'admin123':
+                session['admin_activo'] = True
+                session['analista_id'] = 'RAG123'
+                session['analista_nombre'] = 'Administrador'
+                session['analista_rol'] = 'admin'
+                
+                flash('Acceso autorizado como Administrador', 'success')
+                return redirect(url_for('panel_admin'))
+            else:
+                flash('Clave de administrador incorrecta', 'error')
+                return render_template('login_admin.html')
+                
+        except Exception as e:
+            flash(f'Error en el acceso: {str(e)}', 'error')
+            return render_template('login_admin.html')
+    
+    return render_template('login_admin.html')
+
+@app.route('/enregistro_analista', methods=['GET', 'POST'])
+def enregistro_analista():
+    """Registro de nuevo analista"""
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario de forma segura
+            nombre_completo = request.form.get('nombre_completo', '').strip()
+            rfc = request.form.get('rfc', '').strip().upper()
+            telefono = request.form.get('telefono', '').strip()
+            nip = request.form.get('nip', '').strip()
+            
+            # Validaciones básicas
+            if not all([nombre_completo, rfc, telefono, nip]):
+                flash('Todos los campos son obligatorios', 'error')
+                return render_template('registro_analista.html')
+            
+            # Dividir nombre completo
+            partes_nombre = nombre_completo.split()
+            if len(partes_nombre) < 2:
+                flash('Ingrese nombre y apellido completos', 'error')
+                return render_template('registro_analista.html')
+            
+            nombre = partes_nombre[0]
+            apellido_paterno = partes_nombre[1] if len(partes_nombre) > 1 else ''
+            apellido_materno = ' '.join(partes_nombre[2:]) if len(partes_nombre) > 2 else ''
+            
+            # Validar RFC
+            if len(rfc) != 13:
+                flash('RFC debe tener 13 caracteres', 'error')
+                return render_template('registro_analista.html')
+            
+            # Validar NIP
+            if len(nip) != 4 or not nip.isdigit():
+                flash('NIP debe ser de 4 dígitos numéricos', 'error')
+                return render_template('registro_analista.html')
+            
+            # Verificar si ya existe
+            if analista_existe(rfc):
+                flash('Ya existe un analista con ese RFC', 'error')
+                return render_template('registro_analista.html')
+            
+            # Generar código de analista
+            codigo_analista = generar_codigo_analista()
+            
+            # Crear nuevo analista
+            nuevo_analista = {
+                'codigo': codigo_analista,
+                'nombre': nombre,
+                'apellido_paterno': apellido_paterno,
+                'apellido_materno': apellido_materno,
+                'rfc': rfc,
+                'telefono': telefono,
+                'nip': nip,
+                'estado': 'pendiente',
+                'rol': 'analista',
+                'fecha_registro': datetime.now().isoformat()
+            }
+            
+            # Guardar en la base de datos
+            if guardar_analista(nuevo_analista):
+                flash(f'Solicitud enviada exitosamente. Su código de analista es: {codigo_analista}', 'success')
+                return redirect(url_for('login_analista'))
+            else:
+                flash('Error al guardar el registro. Intente nuevamente.', 'error')
+                return render_template('registro_analista.html')
             
         except Exception as e:
-            conn.close()
-            flash('Error al registrar. Intenta nuevamente.', 'error')
+            flash(f'Error al procesar el registro: {str(e)}', 'error')
             return render_template('registro_analista.html')
     
     return render_template('registro_analista.html')
 
-@app.route('/login_admin', methods=['GET', 'POST'])
-def login_admin():
-    if request.method == 'POST':
-        usuario = request.form['usuario']
-        nip = request.form['nip']
-        
-        conn = sqlite3.connect('credito.db')
-        cursor = conn.cursor()
-        
-        nip_encriptado = encriptar_nip(nip)
-        cursor.execute('SELECT * FROM administradores WHERE usuario = ? AND nip = ?', 
-                      (usuario, nip_encriptado))
-        
-        admin = cursor.fetchone()
-        conn.close()
-        
-        if admin:
-            session['user_type'] = 'admin'
-            session['user_id'] = admin[1]  # usuario
-            session['user_name'] = admin[3]  # nombre_completo
-            return redirect(url_for('panel_admin'))
-        else:
-            flash('Credenciales incorrectas', 'error')
+@app.route('/captura_analista')
+@login_required
+def captura_analista():
+    """Dashboard del analista"""
+    # Cargar estadísticas del analista
+    analista_codigo = session.get('analista_id')
     
-    return render_template('login_admin.html')
-
-@app.route('/panel_analista')
-def panel_analista():
-    if 'user_type' not in session or session['user_type'] != 'analista':
-        return redirect(url_for('login'))
+    # Aquí cargarías las solicitudes del analista desde la base de datos
+    # Por ahora, datos de ejemplo
+    estadisticas = {
+        'solicitudes_totales': 15,
+        'solicitudes_pendientes': 3,
+        'solicitudes_aprobadas': 8,
+        'solicitudes_rechazadas': 4,
+        'monto_total_aprobado': 2500000
+    }
     
-    return render_template('captura_analista.html', 
-                         user_name=session['user_name'],
-                         user_id=session['user_id'])
+    return render_template('captura_analista.html', stats=estadisticas)
 
 @app.route('/panel_admin')
+@login_required
 def panel_admin():
-    if 'user_type' not in session or session['user_type'] != 'admin':
-        return redirect(url_for('login'))
+    """Panel administrativo"""
+    if session.get('analista_rol') != 'admin':
+        flash('Acceso denegado. Solo administradores.', 'error')
+        return redirect(url_for('captura_analista'))
     
-    conn = sqlite3.connect('credito.db')
-    cursor = conn.cursor()
+    # Cargar analistas pendientes de aprobación
+    analistas = cargar_analistas()
+    pendientes = [a for a in analistas if a.get('estado') == 'pendiente']
+    aprobados = [a for a in analistas if a.get('estado') == 'aprobado' and a.get('rol') != 'admin']
     
-    # Obtener TODOS los datos de los analistas (corregido)
-    cursor.execute('''
-        SELECT numero_usuario, apellido_paterno, apellido_materno, nombre, 
-               registro_contribuyentes, nip, fecha_registro, estado
-        FROM analistas 
-        ORDER BY fecha_registro DESC
-    ''')
-    
-    analistas = cursor.fetchall()
-    conn.close()
+    estadisticas = {
+        'total_analistas': len(analistas),
+        'pendientes': len(pendientes),
+        'aprobados': len(aprobados),
+        'solicitudes_totales': 45,  # Esto vendría de la base de datos
+        'solicitudes_hoy': 8
+    }
     
     return render_template('panel_admin.html', 
-                         user_name=session['user_name'],
-                         analistas=analistas)
+                         analistas_pendientes=pendientes,
+                         analistas_aprobados=aprobados,
+                         stats=estadisticas)
 
-@app.route('/evaluar_analista/<numero_usuario>/<accion>')
-def evaluar_analista(numero_usuario, accion):
-    if 'user_type' not in session or session['user_type'] != 'admin':
-        return redirect(url_for('login'))
+@app.route('/aprobar_analista/<codigo>')
+@login_required
+def aprobar_analista(codigo):
+    """Aprobar un analista pendiente"""
+    if session.get('analista_rol') != 'admin':
+        flash('Acceso denegado', 'error')
+        return redirect(url_for('captura_analista'))
     
-    if accion not in ['aprobar', 'rechazar']:
-        flash('Acción no válida', 'error')
-        return redirect(url_for('panel_admin'))
+    if actualizar_analista(codigo, {'estado': 'aprobado'}):
+        flash(f'Analista {codigo} aprobado exitosamente', 'success')
+    else:
+        flash('Error al aprobar el analista', 'error')
     
-    conn = sqlite3.connect('credito.db')
-    cursor = conn.cursor()
-    
-    nuevo_estado = 'aprobado' if accion == 'aprobar' else 'rechazado'
-    
-    cursor.execute('''
-        UPDATE analistas 
-        SET estado = ?, evaluado_por = ?, fecha_evaluacion = CURRENT_TIMESTAMP
-        WHERE numero_usuario = ?
-    ''', (nuevo_estado, session['user_id'], numero_usuario))
-    
-    conn.commit()
-    conn.close()
-    
-    flash(f'Analista {numero_usuario} {nuevo_estado} exitosamente', 'success')
     return redirect(url_for('panel_admin'))
 
-@app.route('/resetear_nip/<numero_usuario>', methods=['POST'])
-def resetear_nip(numero_usuario):
-    if 'user_type' not in session or session['user_type'] != 'admin':
-        return jsonify({'success': False, 'message': 'No autorizado'}), 403
+@app.route('/rechazar_analista/<codigo>')
+@login_required
+def rechazar_analista(codigo):
+    """Rechazar un analista pendiente"""
+    if session.get('analista_rol') != 'admin':
+        flash('Acceso denegado', 'error')
+        return redirect(url_for('captura_analista'))
     
-    try:
-        data = request.get_json()
-        nuevo_nip = data.get('nuevo_nip')
-        
-        if not nuevo_nip or len(nuevo_nip) < 4:
-            return jsonify({'success': False, 'message': 'NIP debe tener al menos 4 caracteres'})
-        
-        conn = sqlite3.connect('credito.db')
-        cursor = conn.cursor()
-        
-        nip_encriptado = encriptar_nip(nuevo_nip)
-        cursor.execute('''
-            UPDATE analistas 
-            SET nip = ?
-            WHERE numero_usuario = ?
-        ''', (nip_encriptado, numero_usuario))
-        
-        if cursor.rowcount > 0:
-            conn.commit()
-            conn.close()
-            flash(f'NIP del analista {numero_usuario} actualizado exitosamente', 'success')
-            return jsonify({'success': True, 'message': 'NIP actualizado'})
-        else:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Analista no encontrado'})
-            
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
+    if actualizar_analista(codigo, {'estado': 'rechazado'}):
+        flash(f'Analista {codigo} rechazado', 'warning')
+    else:
+        flash('Error al rechazar el analista', 'error')
+    
+    return redirect(url_for('panel_admin'))
 
 @app.route('/logout')
 def logout():
+    """Cerrar sesión"""
+    nombre = session.get('analista_nombre', 'Usuario')
     session.clear()
-    flash('Sesión cerrada exitosamente', 'success')
+    flash(f'Hasta luego, {nombre}. Sesión cerrada correctamente.', 'info')
     return redirect(url_for('index'))
 
+# ===== RUTAS ADICIONALES PARA DESARROLLO FUTURO =====
+
+@app.route('/nueva_solicitud')
+@login_required
+def nueva_solicitud():
+    """Formulario para nueva solicitud de crédito"""
+    return render_template('nueva_solicitud.html')
+
+@app.route('/mis_solicitudes')
+@login_required
+def mis_solicitudes():
+    """Ver solicitudes del analista"""
+    return render_template('mis_solicitudes.html')
+
+@app.route('/todas_solicitudes')
+@login_required
+def todas_solicitudes():
+    """Ver todas las solicitudes (solo admin)"""
+    if session.get('analista_rol') != 'admin':
+        flash('Acceso denegado', 'error')
+        return redirect(url_for('captura_analista'))
+    
+    return render_template('todas_solicitudes.html')
+
+# ===== MANEJO DE ERRORES =====
+
+@app.errorhandler(404)
+def page_not_found(e):
+    """Página no encontrada"""
+    return render_template('error.html', error_code=404, error_message="Página no encontrada"), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    """Error interno del servidor"""
+    return render_template('error.html', error_code=500, error_message="Error interno del servidor"), 500
+
+# ===== INICIALIZACIÓN DE LA APLICACIÓN =====
+
 if __name__ == '__main__':
-    init_db()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("🚀 Iniciando Sistema de Análisis Crediticio...")
+    print("📊 Usuarios por defecto:")
+    print("   - Admin: RAG123 / admin123")
+    print("   - Analista: E001 / 1234")
+    print("🌐 Aplicación ejecutándose en: http://localhost:5000")
+    
+    # Crear archivos de datos si no existen
+    cargar_analistas()
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
