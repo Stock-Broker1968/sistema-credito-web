@@ -129,7 +129,7 @@ def generar_codigo_analista():
 @app.route('/')
 def index():
     """Página de inicio"""
-    return render_template('indice.html')
+    return render_template('index.html')
 
 @app.route('/login_analista', methods=['GET', 'POST'])
 def login_analista():
