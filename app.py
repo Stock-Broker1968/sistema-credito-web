@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Sistema de Análisis Crediticio
-Aplicación Flask corregida para coincidir con templates existentes
+Aplicación Flask CORREGIDA - Usar carpeta 'templates' y nombres exactos
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
@@ -14,7 +14,7 @@ import random
 import string
 
 # ===== CONFIGURACIÓN DE LA APLICACIÓN =====
-app = Flask(__name__, template_folder='templates')  # ← CORREGIDO: usar plantillas
+app = Flask(__name__)  # ← SIN template_folder (usa 'templates' por defecto)
 app.secret_key = 'sistema_credito_2025_clave_segura'
 
 # ===== DECORADOR PARA LOGIN REQUERIDO =====
@@ -127,7 +127,7 @@ def generar_codigo_analista():
 @app.route('/')
 def index():
     """Página de inicio"""
-    return render_template('index.html')  # ← CORREGIDO
+    return render_template('index.html')
 
 @app.route('/login_analista', methods=['GET', 'POST'])
 def login_analista():
@@ -203,8 +203,8 @@ def login_admin():
     
     return render_template('login_admin.html')
 
-@app.route('/registro_analista', methods=['GET', 'POST'])  # ← CORREGIDO
-def registro_analista():  # ← CORREGIDO
+@app.route('/registro_analista', methods=['GET', 'POST'])
+def registro_analista():
     """Registro de nuevo analista"""
     if request.method == 'POST':
         try:
@@ -325,7 +325,7 @@ def gestionar_analistas():
     
     return render_template('gestionar_analistas.html', analistas=todos_analistas)
 
-@app.route('/aprobar_analista/<codigo>', methods=['POST'])
+@app.route('/aprobar_analista/<codigo>', methods=['POST', 'GET'])
 @login_required
 def aprobar_analista(codigo):
     """Aprobar un analista pendiente"""
@@ -340,7 +340,7 @@ def aprobar_analista(codigo):
     
     return redirect(url_for('panel_admin'))
 
-@app.route('/rechazar_analista/<codigo>', methods=['POST'])
+@app.route('/rechazar_analista/<codigo>', methods=['POST', 'GET'])
 @login_required
 def rechazar_analista(codigo):
     """Rechazar un analista pendiente"""
@@ -363,7 +363,7 @@ def logout():
     flash(f'Hasta luego, {nombre}. Sesión cerrada correctamente.', 'info')
     return redirect(url_for('index'))
 
-# ===== RUTAS ADICIONALES =====
+# ===== RUTAS ADICIONALES PARA TEMPLATES EXISTENTES =====
 
 @app.route('/nueva_solicitud')
 @login_required
@@ -409,6 +409,18 @@ def reglas_negocio():
     
     return render_template('reglas_negocio.html')
 
+# ===== RUTAS ADICIONALES SEGÚN TUS TEMPLATES =====
+
+@app.route('/login')
+def login():
+    """Ruta login genérica - redirige a login analista"""
+    return redirect(url_for('login_analista'))
+
+@app.route('/base')
+def base():
+    """Template base - solo para referencia"""
+    return render_template('base.html')
+
 # ===== MANEJO DE ERRORES =====
 
 @app.errorhandler(404)
@@ -427,11 +439,14 @@ def internal_server_error(e):
 
 if __name__ == '__main__':
     print("🚀 Iniciando Sistema de Análisis Crediticio...")
+    print("📁 Usando carpeta 'templates' por defecto")
     print("📊 Usuarios por defecto:")
     print("   - Admin: RAG123 / admin123")
     print("   - Analista: E001 / 1234")
     print("🌐 Aplicación ejecutándose en: http://localhost:5000")
     
+    # Crear datos iniciales
     cargar_analistas()
     
+    # Ejecutar aplicación
     app.run(debug=True, host='0.0.0.0', port=5000)
