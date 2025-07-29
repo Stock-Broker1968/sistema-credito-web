@@ -541,6 +541,8 @@ def debug_db():
             <hr>
             <div style="margin: 20px 0;">
                 <a href="/debug_analistas" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">👥 Ver Todos los Analistas</a>
+                <a href="/debug_completo" style="background: #17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">🔧 Debug Completo</a>
+                <a href="/test_registro" style="background: #ffc107; color: black; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">🧪 Test Registro</a>
                 <a href="/panel_admin" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">🏠 Panel Admin</a>
                 <a href="/registro_analista" style="background: #fd7e14; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">➕ Registrar Analista</a>
             </div>
@@ -602,6 +604,7 @@ def debug_analistas():
         <hr>
         <div style="margin: 20px 0;">
             <a href="/debug_db" style="background: #6c757d; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">📊 Ver Estadísticas DB</a>
+            <a href="/debug_completo" style="background: #17a2b8; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">🔧 Debug Completo</a>
             <a href="/panel_admin" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">🏠 Panel Admin</a>
             <a href="/" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">🏠 Inicio</a>
         </div>
@@ -621,6 +624,255 @@ def debug_analistas():
         </html>
         """
 
+@app.route('/debug_completo')
+def debug_completo():
+    """Debug completo del sistema"""
+    try:
+        html = """
+        <html>
+        <body style="font-family: Arial; margin: 20px;">
+        <h2>🔧 Debug Completo del Sistema</h2>
+        """
+        
+        # Test de conexión a la base de datos
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tablas = cursor.fetchall()
+                html += f"<h3>✅ Conexión SQLite exitosa</h3>"
+                html += f"<p><strong>Tablas:</strong> {[t[0] for t in tablas]}</p>"
+                
+                # Verificar estructura de tabla
+                cursor.execute("PRAGMA table_info(analistas)")
+                columnas = cursor.fetchall()
+                html += f"<p><strong>Columnas en tabla 'analistas':</strong></p><ul>"
+                for col in columnas:
+                    html += f"<li>{col[1]} ({col[2]})</li>"
+                html += "</ul>"
+                
+                # Contar registros
+                cursor.execute("SELECT COUNT(*) FROM analistas")
+                total = cursor.fetchone()[0]
+                html += f"<p><strong>Total registros:</strong> {total}</p>"
+                
+                # Mostrar todos los registros
+                cursor.execute("SELECT * FROM analistas")
+                registros = cursor.fetchall()
+                html += "<h3>📋 Todos los registros:</h3>"
+                for reg in registros:
+                    html += f"<p>ID: {reg[0]} | Código: {reg[1]} | Nombre: {reg[2]} | RFC: {reg[5]} | Estado: {reg[8]}</p>"
+                
+        except Exception as e:
+            html += f"<h3 style='color: red;'>❌ Error de base de datos: {str(e)}</h3>"
+        
+        # Test de funciones
+        try:
+            analistas = cargar_analistas()
+            html += f"<h3>📊 Función cargar_analistas()</h3>"
+            html += f"<p>Retorna {len(analistas)} analistas</p>"
+            for a in analistas:
+                html += f"<p>- {a.get('codigo', 'SIN_CODIGO')}: {a.get('nombre', 'SIN_NOMBRE')} ({a.get('estado', 'SIN_ESTADO')})</p>"
+        except Exception as e:
+            html += f"<h3 style='color: red;'>❌ Error en cargar_analistas(): {str(e)}</h3>"
+        
+        # Test de login
+        html += "<h3>🔐 Test de Login</h3>"
+        try:
+            analistas = cargar_analistas()
+            analista_e001 = next((a for a in analistas if a.get('codigo') == 'E001'), None)
+            if analista_e001:
+                html += f"<p style='color: green;'>✅ E001 encontrado: {analista_e001.get('nombre')}</p>"
+                html += f"<p>Estado: {analista_e001.get('estado')}</p>"
+                html += f"<p>NIP: {analista_e001.get('nip')}</p>"
+            else:
+                html += f"<p style='color: red;'>❌ E001 NO encontrado en la lista</p>"
+        except Exception as e:
+            html += f"<p style='color: red;'>❌ Error en test de login: {str(e)}</p>"
+        
+        html += """
+        <hr>
+        <h3>🧪 Enlaces de prueba:</h3>
+        <p><a href="/test_registro">🧪 Probar registro con debug</a></p>
+        <p><a href="/debug_db">📊 Ver estadísticas DB</a></p>
+        <p><a href="/debug_analistas">👥 Ver todos los analistas</a></p>
+        <p><a href="/panel_admin">🏠 Panel Admin</a></p>
+        </body>
+        </html>
+        """
+        return html
+        
+    except Exception as e:
+        return f"<h2>💥 Error crítico: {str(e)}</h2>"
+
+@app.route('/test_registro', methods=['GET', 'POST'])
+def test_registro():
+    """Test específico de registro"""
+    if request.method == 'POST':
+        try:
+            # Obtener datos del formulario
+            nombre_completo = request.form.get('nombre_completo', '').strip()
+            rfc = request.form.get('rfc', '').strip().upper()
+            telefono = request.form.get('telefono', '').strip()
+            nip = request.form.get('nip', '').strip()
+            
+            resultado = f"""
+            <html>
+            <body style="font-family: Arial; margin: 20px;">
+            <h2>🧪 Test de Registro Detallado</h2>
+            
+            <h3>📥 Datos recibidos:</h3>
+            <p><strong>Nombre:</strong> '{nombre_completo}' (longitud: {len(nombre_completo)})</p>
+            <p><strong>RFC:</strong> '{rfc}' (longitud: {len(rfc)})</p>
+            <p><strong>Teléfono:</strong> '{telefono}' (longitud: {len(telefono)})</p>
+            <p><strong>NIP:</strong> '{nip}' (longitud: {len(nip)})</p>
+            
+            <h3>✅ Validaciones paso a paso:</h3>
+            """
+            
+            # Validar campos vacíos
+            if not all([nombre_completo, rfc, telefono, nip]):
+                resultado += f"<p style='color: red;'>❌ FALLA: Campos vacíos detectados</p>"
+                campos_vacios = []
+                if not nombre_completo: campos_vacios.append('nombre')
+                if not rfc: campos_vacios.append('rfc')
+                if not telefono: campos_vacios.append('telefono')
+                if not nip: campos_vacios.append('nip')
+                resultado += f"<p>Campos vacíos: {campos_vacios}</p>"
+                resultado += "</body></html>"
+                return resultado
+            else:
+                resultado += "<p style='color: green;'>✅ PASO 1: Todos los campos presentes</p>"
+            
+            # Validar nombre
+            partes_nombre = nombre_completo.split()
+            if len(partes_nombre) < 2:
+                resultado += f"<p style='color: red;'>❌ FALLA: Nombre debe tener al menos 2 palabras. Recibido: {len(partes_nombre)} palabras</p>"
+                resultado += "</body></html>"
+                return resultado
+            else:
+                resultado += f"<p style='color: green;'>✅ PASO 2: Nombre válido ({len(partes_nombre)} palabras)</p>"
+            
+            # Validar RFC
+            if len(rfc) != 13:
+                resultado += f"<p style='color: red;'>❌ FALLA: RFC debe tener 13 caracteres. Recibido: {len(rfc)} caracteres</p>"
+                resultado += "</body></html>"
+                return resultado
+            else:
+                resultado += f"<p style='color: green;'>✅ PASO 3: RFC válido (13 caracteres)</p>"
+            
+            # Validar NIP
+            if len(nip) != 4 or not nip.isdigit():
+                resultado += f"<p style='color: red;'>❌ FALLA: NIP debe ser 4 dígitos. Recibido: '{nip}' (longitud: {len(nip)}, es dígito: {nip.isdigit()})</p>"
+                resultado += "</body></html>"
+                return resultado
+            else:
+                resultado += f"<p style='color: green;'>✅ PASO 4: NIP válido (4 dígitos)</p>"
+            
+            # Verificar RFC existente
+            rfc_existe = analista_existe(rfc)
+            if rfc_existe:
+                resultado += f"<p style='color: red;'>❌ FALLA: RFC {rfc} ya existe en la base de datos</p>"
+                resultado += "</body></html>"
+                return resultado
+            else:
+                resultado += f"<p style='color: green;'>✅ PASO 5: RFC {rfc} disponible</p>"
+            
+            # Generar código
+            codigo = generar_codigo_analista()
+            resultado += f"<p style='color: blue;'>🆔 Código generado: {codigo}</p>"
+            
+            # Preparar datos para guardar
+            nombre = partes_nombre[0]
+            apellido_paterno = partes_nombre[1] if len(partes_nombre) > 1 else ''
+            apellido_materno = ' '.join(partes_nombre[2:]) if len(partes_nombre) > 2 else ''
+            
+            nuevo_analista = {
+                'codigo': codigo,
+                'nombre': nombre,
+                'apellido_paterno': apellido_paterno,
+                'apellido_materno': apellido_materno,
+                'rfc': rfc,
+                'telefono': telefono,
+                'nip': nip,
+                'estado': 'pendiente',
+                'rol': 'analista'
+            }
+            
+            resultado += f"<h3>💾 Intentando guardar:</h3>"
+            resultado += f"<pre>{str(nuevo_analista)}</pre>"
+            
+            # Intentar guardar
+            guardado = guardar_analista(nuevo_analista)
+            if guardado:
+                resultado += f"<p style='color: green; font-size: 1.3em;'>🎉 ¡ÉXITO! Analista guardado correctamente</p>"
+                resultado += f"<p><strong>Código asignado:</strong> {codigo}</p>"
+            else:
+                resultado += f"<p style='color: red; font-size: 1.3em;'>❌ FALLA: Error al guardar en la base de datos</p>"
+            
+            resultado += """
+            <hr>
+            <h3>🔍 Verificación:</h3>
+            <p><a href="/debug_db" target="_blank">📊 Ver estado actual de la DB</a></p>
+            <p><a href="/debug_analistas" target="_blank">👥 Ver todos los analistas</a></p>
+            <p><a href="/test_registro">🔄 Probar otra vez</a></p>
+            </body>
+            </html>
+            """
+            
+            return resultado
+            
+        except Exception as e:
+            return f"""
+            <html>
+            <body style="font-family: Arial; margin: 20px;">
+            <h2 style="color: red;">💥 Error en test_registro</h2>
+            <p><strong>Error:</strong> {str(e)}</p>
+            <p><strong>Tipo:</strong> {type(e).__name__}</p>
+            <p><a href="/test_registro">🔄 Intentar nuevamente</a></p>
+            </body>
+            </html>
+            """
+    
+    # Mostrar formulario
+    return """
+    <html>
+    <body style="font-family: Arial; margin: 20px;">
+    <h2>🧪 Test de Registro de Analista</h2>
+    <p>Este formulario permite probar el registro paso a paso con debug detallado.</p>
+    
+    <form method="POST" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+        <p><label><strong>Nombre Completo:</strong></label><br>
+        <input type="text" name="nombre_completo" value="María García Rodríguez" 
+               style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required></p>
+        
+        <p><label><strong>RFC (13 caracteres):</strong></label><br>
+        <input type="text" name="rfc" value="GARM900515XYZ" 
+               style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required></p>
+        
+        <p><label><strong>Teléfono:</strong></label><br>
+        <input type="text" name="telefono" value="5559876543" 
+               style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required></p>
+        
+        <p><label><strong>NIP (4 dígitos):</strong></label><br>
+        <input type="text" name="nip" value="9876" 
+               style="width: 300px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" required></p>
+        
+        <p><button type="submit" 
+           style="background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+           🧪 Probar Registro con Debug
+        </button></p>
+    </form>
+    
+    <hr>
+    <h3>🔗 Enlaces útiles:</h3>
+    <p><a href="/debug_completo">🔧 Debug completo del sistema</a></p>
+    <p><a href="/debug_db">📊 Ver estado de la DB</a></p>
+    <p><a href="/panel_admin">🏠 Panel Admin</a></p>
+    </body>
+    </html>
+    """
+
 # ===== MANEJO DE ERRORES =====
 
 @app.errorhandler(404)
@@ -637,114 +889,20 @@ def internal_server_error(e):
 
 # ===== INICIALIZACIÓN DE LA APLICACIÓN =====
 
-@app.route('/test_registro', methods=['GET', 'POST'])
-def test_registro():
-    """Función de prueba para el registro de analistas"""
-    if request.method == 'POST':
-        try:
-            # Obtener datos
-            nombre_completo = request.form.get('nombre_completo', '').strip()
-            rfc = request.form.get('rfc', '').strip().upper()
-            telefono = request.form.get('telefono', '').strip()
-            nip = request.form.get('nip', '').strip()
-            
-            resultado = f"""
-            <html>
-            <body style="font-family: Arial; margin: 20px;">
-            <h2>🧪 Debug Registro de Analista</h2>
-            <h3>Datos recibidos:</h3>
-            <p><strong>Nombre:</strong> '{nombre_completo}' (longitud: {len(nombre_completo)})</p>
-            <p><strong>RFC:</strong> '{rfc}' (longitud: {len(rfc)})</p>
-            <p><strong>Teléfono:</strong> '{telefono}' (longitud: {len(telefono)})</p>
-            <p><strong>NIP:</strong> '{nip}' (longitud: {len(nip)})</p>
-            
-            <h3>Validaciones:</h3>
-            """
-            
-            # Validar campos obligatorios
-            if not all([nombre_completo, rfc, telefono, nip]):
-                resultado += f"<p style='color: red;'>❌ Campos faltantes</p>"
-                return resultado + "</body></html>"
-            
-            # Validar nombre
-            partes_nombre = nombre_completo.split()
-            if len(partes_nombre) < 2:
-                resultado += f"<p style='color: red;'>❌ Nombre incompleto: {len(partes_nombre)} partes</p>"
-                return resultado + "</body></html>"
-            
-            # Validar RFC
-            if len(rfc) != 13:
-                resultado += f"<p style='color: red;'>❌ RFC inválido: {len(rfc)} caracteres</p>"
-                return resultado + "</body></html>"
-            
-            # Validar NIP
-            if len(nip) != 4 or not nip.isdigit():
-                resultado += f"<p style='color: red;'>❌ NIP inválido: '{nip}'</p>"
-                return resultado + "</body></html>"
-            
-            # Verificar si RFC existe
-            if analista_existe(rfc):
-                resultado += f"<p style='color: red;'>❌ RFC ya existe</p>"
-                return resultado + "</body></html>"
-            
-            # Intentar guardar
-            codigo_analista = generar_codigo_analista()
-            nombre = partes_nombre[0]
-            apellido_paterno = partes_nombre[1] if len(partes_nombre) > 1 else ''
-            apellido_materno = ' '.join(partes_nombre[2:]) if len(partes_nombre) > 2 else ''
-            
-            nuevo_analista = {
-                'codigo': codigo_analista,
-                'nombre': nombre,
-                'apellido_paterno': apellido_paterno,
-                'apellido_materno': apellido_materno,
-                'rfc': rfc,
-                'telefono': telefono,
-                'nip': nip,
-                'estado': 'pendiente',
-                'rol': 'analista'
-            }
-            
-            resultado += f"<p style='color: blue;'>🔄 Intentando guardar con código: {codigo_analista}</p>"
-            
-            if guardar_analista(nuevo_analista):
-                resultado += f"<p style='color: green; font-size: 1.2em;'>🎉 ¡ÉXITO! Analista guardado</p>"
-            else:
-                resultado += f"<p style='color: red;'>❌ Error al guardar en SQLite</p>"
-            
-            resultado += """
-            <hr>
-            <p><a href="/debug_db">📊 Verificar DB</a></p>
-            <p><a href="/test_registro">🔄 Probar otra vez</a></p>
-            </body>
-            </html>
-            """
-            
-            return resultado
-        
-        except Exception as e:
-            return f"<h2>💥 Error: {str(e)}</h2><a href='/test_registro'>Volver</a>"
+if __name__ == '__main__':
+    print("🚀 Iniciando Sistema de Análisis Crediticio...")
+    print("🗃️ Inicializando base de datos SQLite...")
     
-    # Formulario de prueba
-    return """
-    <html>
-    <body style="font-family: Arial; margin: 20px;">
-    <h2>🧪 Test de Registro</h2>
-    <form method="POST">
-        <p><label>Nombre:</label><br>
-        <input type="text" name="nombre_completo" value="María García Rodríguez" style="width: 300px; padding: 8px;"></p>
-        
-        <p><label>RFC:</label><br>
-        <input type="text" name="rfc" value="GARM900515XYZ" style="width: 300px; padding: 8px;"></p>
-        
-        <p><label>Teléfono:</label><br>
-        <input type="text" name="telefono" value="5559876543" style="width: 300px; padding: 8px;"></p>
-        
-        <p><label>NIP:</label><br>
-        <input type="text" name="nip" value="9876" style="width: 300px; padding: 8px;"></p>
-        
-        <p><button type="submit" style="background: #28a745; color: white; padding: 10px 20px; border: none;">🧪 Probar</button></p>
-    </form>
-    </body>
-    </html>
-    """
+    # Inicializar base de datos
+    init_db()
+    
+    print("📊 Usuarios por defecto:")
+    print("   - Admin: RAG123 / admin123")
+    print("   - Analista: E001 / 1234")
+    print("🌐 Aplicación ejecutándose...")
+    
+    # Para Render (producción) y desarrollo local
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
