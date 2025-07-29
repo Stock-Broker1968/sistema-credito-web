@@ -120,35 +120,43 @@ def cargar_analistas():
         print(f"❌ Error cargando analistas: {e}")
         return []
 
-def guardar_analista(analista_data):
-    """Guardar analista en SQLite"""
+def cargar_analistas():
+    """Cargar analistas desde SQLite - VERSIÓN CORREGIDA"""
     try:
         with get_db() as conn:
             cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO analistas (codigo, nombre, apellido_paterno, apellido_materno, rfc, telefono, nip, estado, rol)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                analista_data['codigo'],
-                analista_data['nombre'],
-                analista_data.get('apellido_paterno', ''),
-                analista_data.get('apellido_materno', ''),
-                analista_data['rfc'],
-                analista_data['telefono'],
-                analista_data['nip'],
-                analista_data.get('estado', 'pendiente'),
-                analista_data.get('rol', 'analista')
-            ))
-            conn.commit()
-            print(f"✅ Analista {analista_data['codigo']} guardado en SQLite")
-            return True
+            cursor.execute('SELECT * FROM analistas ORDER BY fecha_registro DESC')
+            rows = cursor.fetchall()
             
-    except sqlite3.IntegrityError as e:
-        print(f"⚠️ Error de integridad (RFC o código duplicado): {e}")
-        return False
+            analistas = []
+            for row in rows:
+                # Convertir fecha_registro a string si es necesario
+                fecha_registro = row['fecha_registro']
+                if fecha_registro and hasattr(fecha_registro, 'strftime'):
+                    fecha_str = fecha_registro.strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    fecha_str = str(fecha_registro) if fecha_registro else datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                analistas.append({
+                    'id': row['id'],
+                    'codigo': str(row['codigo']).strip(),  # Asegurar que sea string limpio
+                    'nombre': row['nombre'] or '',
+                    'apellido_paterno': row['apellido_paterno'] or '',
+                    'apellido_materno': row['apellido_materno'] or '',
+                    'rfc': str(row['rfc']).strip(),
+                    'telefono': row['telefono'] or '',
+                    'nip': str(row['nip']).strip(),
+                    'estado': str(row['estado']).strip(),
+                    'rol': str(row['rol']).strip(),
+                    'fecha_registro': fecha_str
+                })
+            
+            print(f"📊 Cargados {len(analistas)} analistas desde SQLite")
+            return analistas
+            
     except Exception as e:
-        print(f"❌ Error guardando analista: {e}")
-        return False
+        print(f"❌ Error cargando analistas: {e}")
+        return []
 
 def actualizar_analista(codigo, nuevos_datos):
     """Actualizar datos de un analista en SQLite"""
@@ -217,28 +225,41 @@ def index():
 
 @app.route('/login_analista', methods=['GET', 'POST'])
 def login_analista():
-    """Login de analista"""
+    """Login de analista - VERSIÓN CORREGIDA"""
     if request.method == 'POST':
         try:
-            codigo = request.form.get('codigo', '').strip()
+            codigo = request.form.get('codigo', '').strip().upper()  # Limpiar y mayúsculas
             nip = request.form.get('nip', '').strip()
+            
+            print(f"🔐 Intento de login - Código: '{codigo}', NIP: '{nip}'")
             
             if not codigo or not nip:
                 flash('Ingrese código y NIP', 'error')
                 return render_template('login_analista.html')
             
             analistas = cargar_analistas()
-            analista = next((a for a in analistas if a.get('codigo') == codigo), None)
+            print(f"📋 Analistas disponibles: {[a.get('codigo') for a in analistas]}")
+            
+            # Buscar analista con código exacto
+            analista = None
+            for a in analistas:
+                if str(a.get('codigo', '')).strip().upper() == codigo:
+                    analista = a
+                    break
             
             if not analista:
+                print(f"❌ Código {codigo} no encontrado")
                 flash('Código de analista no encontrado', 'error')
                 return render_template('login_analista.html')
+            
+            print(f"✅ Analista encontrado: {analista.get('nombre')} - Estado: {analista.get('estado')}")
             
             if analista.get('estado') != 'aprobado':
                 flash('Su cuenta está pendiente de aprobación', 'warning')
                 return render_template('login_analista.html')
             
-            if analista.get('nip') != nip:
+            if str(analista.get('nip', '')).strip() != nip:
+                print(f"❌ NIP incorrecto. Esperado: {analista.get('nip')}, Recibido: {nip}")
                 flash('NIP incorrecto', 'error')
                 return render_template('login_analista.html')
             
@@ -255,6 +276,7 @@ def login_analista():
                 return redirect(url_for('captura_analista'))
                 
         except Exception as e:
+            print(f"💥 Error en login: {str(e)}")
             flash(f'Error en el login: {str(e)}', 'error')
             return render_template('login_analista.html')
     
@@ -906,3 +928,67 @@ if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_ENV') != 'production'
     
     app.run(debug=debug_mode, host='0.0.0.0', port=port)
+    @app.route('/test_login', methods=['GET', 'POST'])
+def test_login():
+    """Test específico de login"""
+    if request.method == 'POST':
+        codigo = request.form.get('codigo', '').strip()
+        nip = request.form.get('nip', '').strip()
+        
+        html = f"""
+        <html>
+        <body style="font-family: Arial; margin: 20px;">
+        <h2>🔐 Test de Login</h2>
+        <h3>Datos ingresados:</h3>
+        <p><strong>Código:</strong> '{codigo}'</p>
+        <p><strong>NIP:</strong> '{nip}'</p>
+        
+        <h3>Verificación:</h3>
+        """
+        
+        try:
+            analistas = cargar_analistas()
+            html += f"<p>Analistas cargados: {len(analistas)}</p>"
+            
+            for analista in analistas:
+                codigo_db = str(analista.get('codigo', '')).strip()
+                nip_db = str(analista.get('nip', '')).strip()
+                estado_db = analista.get('estado', '')
+                
+                html += f"""
+                <div style="border: 1px solid #ddd; margin: 10px 0; padding: 10px;">
+                    <p><strong>Código DB:</strong> '{codigo_db}' (¿Coincide? {codigo_db.upper() == codigo.upper()})</p>
+                    <p><strong>NIP DB:</strong> '{nip_db}' (¿Coincide? {nip_db == nip})</p>
+                    <p><strong>Estado:</strong> {estado_db}</p>
+                    <p><strong>Nombre:</strong> {analista.get('nombre', '')}</p>
+                </div>
+                """
+            
+        except Exception as e:
+            html += f"<p style='color: red;'>Error: {str(e)}</p>"
+        
+        html += """
+        <hr>
+        <p><a href="/test_login">🔄 Probar otra vez</a></p>
+        <p><a href="/debug_db">📊 Ver DB</a></p>
+        </body>
+        </html>
+        """
+        return html
+    
+    return """
+    <html>
+    <body style="font-family: Arial; margin: 20px;">
+    <h2>🔐 Test de Login</h2>
+    <form method="POST">
+        <p><label>Código:</label><br>
+        <input type="text" name="codigo" value="E001" style="padding: 8px; width: 200px;"></p>
+        
+        <p><label>NIP:</label><br>
+        <input type="text" name="nip" value="1234" style="padding: 8px; width: 200px;"></p>
+        
+        <p><button type="submit" style="background: #007bff; color: white; padding: 10px 20px; border: none;">🧪 Probar Login</button></p>
+    </form>
+    </body>
+    </html>
+    """
