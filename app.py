@@ -12,6 +12,8 @@ import json
 import os
 import random
 import string
+import sqlite3
+from contextlib import contextmanager
 
 # ===== CONFIGURACIÓN DE LA APLICACIÓN =====
 app = Flask(__name__)  # ← SIN template_folder (usa 'templates' por defecto)
@@ -436,17 +438,53 @@ def internal_server_error(e):
     return redirect(url_for('index'))
 
 # ===== INICIALIZACIÓN DE LA APLICACIÓN =====
+@app.route('/debug_db')
+def debug_db():
+    """Debug de la base de datos SQLite"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT COUNT(*) FROM analistas")
+            total = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM analistas WHERE estado = 'pendiente'")
+            pendientes = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM analistas WHERE estado = 'aprobado'")
+            aprobados = cursor.fetchone()[0]
+            
+            html = f"""
+            <html>
+            <body style="font-family: Arial; margin: 20px;">
+            <h2>🗃️ SQLite Database Status</h2>
+            <p><strong>Total analistas:</strong> {total}</p>
+            <p><strong>Pendientes:</strong> <span style="color: orange; font-weight: bold;">{pendientes}</span></p>
+            <p><strong>Aprobados:</strong> <span style="color: green; font-weight: bold;">{aprobados}</span></p>
+            <hr>
+            <p><a href="/panel_admin" style="color: blue;">← Volver al Panel Admin</a></p>
+            </body>
+            </html>
+            """
+            return html
+            
+    except Exception as e:
+        return f"<h2>❌ Error: {e}</h2><a href='/panel_admin'>← Volver</a>"
 
 if __name__ == '__main__':
     print("🚀 Iniciando Sistema de Análisis Crediticio...")
-    print("📁 Usando carpeta 'templates' por defecto")
+    print("🗃️ Inicializando base de datos SQLite...")
+    
+    # Inicializar base de datos
+    init_db()
+    
     print("📊 Usuarios por defecto:")
     print("   - Admin: RAG123 / admin123")
     print("   - Analista: E001 / 1234")
-    print("🌐 Aplicación ejecutándose en: http://localhost:5000")
+    print("🌐 Aplicación ejecutándose...")
     
-    # Crear datos iniciales
-    cargar_analistas()
+    # Para Render (producción) y desarrollo local
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
     
-    # Ejecutar aplicación
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
