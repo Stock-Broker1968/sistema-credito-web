@@ -263,6 +263,11 @@ def aprobar_todos_los_analistas():
 
 # RUTAS DE LA APLICACIÓN
 
+@app.route('/registro_analista')
+def registro_analista():
+    """Página de registro de analista"""
+    return render_template('registro_analista.html')
+
 @app.route('/')
 def index():
     """Página principal"""
