@@ -19,6 +19,184 @@ from contextlib import contextmanager
 app = Flask(__name__)  # ← SIN template_folder (usa 'templates' por defecto)
 app.secret_key = 'sistema_credito_2025_clave_segura'
 
+# ===== CONFIGURACIÓN DE BASE DE DATOS SQLite =====
+
+def init_db():
+    """Inicializar base de datos SQLite"""
+    try:
+        conn = sqlite3.connect('analistas.db')
+        cursor = conn.cursor()
+        
+        # Crear tabla si no existe
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS analistas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo TEXT UNIQUE NOT NULL,
+                nombre TEXT NOT NULL,
+                apellido_paterno TEXT,
+                apellido_materno TEXT,
+                rfc TEXT UNIQUE NOT NULL,
+                telefono TEXT,
+                nip TEXT NOT NULL,
+                estado TEXT DEFAULT 'pendiente',
+                rol TEXT DEFAULT 'analista',
+                fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Insertar datos por defecto si la tabla está vacía
+        cursor.execute('SELECT COUNT(*) FROM analistas')
+        if cursor.fetchone()[0] == 0:
+            analistas_default = [
+                ('RAG123', 'Administrador', 'Sistema', '', 'ADMIN123456RF', '5555555555', 'admin123', 'aprobado', 'admin'),
+                ('E001', 'Juan', 'Pérez', 'López', 'PELJ850101ABC', '5551234567', '1234', 'aprobado', 'analista')
+            ]
+            
+            cursor.executemany('''
+                INSERT INTO analistas (codigo, nombre, apellido_paterno, apellido_materno, rfc, telefono, nip, estado, rol)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', analistas_default)
+        
+        conn.commit()
+        conn.close()
+        print("✅ Base de datos SQLite inicializada correctamente")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error inicializando base de datos: {e}")
+        return False
+
+@contextmanager
+def get_db():
+    """Context manager para conexiones a la base de datos"""
+    conn = sqlite3.connect('analistas.db')
+    conn.row_factory = sqlite3.Row  # Para acceder por nombre de columna
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+# ===== REEMPLAZA estas funciones existentes =====
+
+def cargar_analistas():
+    """Cargar analistas desde SQLite"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM analistas ORDER BY fecha_registro DESC')
+            rows = cursor.fetchall()
+            
+            analistas = []
+            for row in rows:
+                analistas.append({
+                    'id': row['id'],
+                    'codigo': row['codigo'],
+                    'nombre': row['nombre'],
+                    'apellido_paterno': row['apellido_paterno'] or '',
+                    'apellido_materno': row['apellido_materno'] or '',
+                    'rfc': row['rfc'],
+                    'telefono': row['telefono'],
+                    'nip': row['nip'],
+                    'estado': row['estado'],
+                    'rol': row['rol'],
+                    'fecha_registro': row['fecha_registro']
+                })
+            
+            print(f"📊 Cargados {len(analistas)} analistas desde SQLite")
+            return analistas
+            
+    except Exception as e:
+        print(f"❌ Error cargando analistas: {e}")
+        return []
+
+def guardar_analista(analista_data):
+    """Guardar analista en SQLite"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO analistas (codigo, nombre, apellido_paterno, apellido_materno, rfc, telefono, nip, estado, rol)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                analista_data['codigo'],
+                analista_data['nombre'],
+                analista_data.get('apellido_paterno', ''),
+                analista_data.get('apellido_materno', ''),
+                analista_data['rfc'],
+                analista_data['telefono'],
+                analista_data['nip'],
+                analista_data.get('estado', 'pendiente'),
+                analista_data.get('rol', 'analista')
+            ))
+            conn.commit()
+            print(f"✅ Analista {analista_data['codigo']} guardado en SQLite")
+            return True
+            
+    except sqlite3.IntegrityError as e:
+        print(f"⚠️ Error de integridad (RFC o código duplicado): {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Error guardando analista: {e}")
+        return False
+
+def actualizar_analista(codigo, nuevos_datos):
+    """Actualizar datos de un analista en SQLite"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # Construir query dinámicamente
+            set_clauses = []
+            values = []
+            
+            for key, value in nuevos_datos.items():
+                set_clauses.append(f"{key} = ?")
+                values.append(value)
+            
+            values.append(codigo)  # Para el WHERE
+            
+            query = f"UPDATE analistas SET {', '.join(set_clauses)} WHERE codigo = ?"
+            cursor.execute(query, values)
+            conn.commit()
+            
+            if cursor.rowcount > 0:
+                print(f"✅ Analista {codigo} actualizado")
+                return True
+            else:
+                print(f"⚠️ No se encontró analista {codigo}")
+                return False
+                
+    except Exception as e:
+        print(f"❌ Error actualizando analista: {e}")
+        return False
+
+def analista_existe(rfc):
+    """Verificar si ya existe un analista con ese RFC"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT COUNT(*) FROM analistas WHERE rfc = ?', (rfc,))
+            return cursor.fetchone()[0] > 0
+    except Exception as e:
+        print(f"❌ Error verificando analista: {e}")
+        return False
+
+def generar_codigo_analista():
+    """Generar código único de analista"""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            while True:
+                codigo = 'E' + ''.join(random.choices(string.digits, k=3))
+                cursor.execute('SELECT COUNT(*) FROM analistas WHERE codigo = ?', (codigo,))
+                if cursor.fetchone()[0] == 0:
+                    return codigo
+                    
+    except Exception as e:
+        print(f"❌ Error generando código: {e}")
+        return 'E999'  # Código por defecto en caso de error
+
 # ===== DECORADOR PARA LOGIN REQUERIDO =====
 def login_required(f):
     """Decorador para rutas que requieren login"""
