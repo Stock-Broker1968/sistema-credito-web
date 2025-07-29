@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Sistema de Análisis Crediticio
-Aplicación Flask CORREGIDA - Usar carpeta 'templates' y nombres exactos
+Aplicación Flask CORREGIDA - Usando SQLite para persistencia en Render
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
@@ -18,6 +18,17 @@ from contextlib import contextmanager
 # ===== CONFIGURACIÓN DE LA APLICACIÓN =====
 app = Flask(__name__)  # ← SIN template_folder (usa 'templates' por defecto)
 app.secret_key = 'sistema_credito_2025_clave_segura'
+
+# ===== DECORADOR PARA LOGIN REQUERIDO =====
+def login_required(f):
+    """Decorador para rutas que requieren login"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'analista_id' not in session:
+            flash('Debe iniciar sesión primero', 'warning')
+            return redirect(url_for('login_analista'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # ===== CONFIGURACIÓN DE BASE DE DATOS SQLite =====
 
@@ -76,7 +87,7 @@ def get_db():
     finally:
         conn.close()
 
-# ===== REEMPLAZA estas funciones existentes =====
+# ===== FUNCIONES AUXILIARES =====
 
 def cargar_analistas():
     """Cargar analistas desde SQLite"""
@@ -196,111 +207,6 @@ def generar_codigo_analista():
     except Exception as e:
         print(f"❌ Error generando código: {e}")
         return 'E999'  # Código por defecto en caso de error
-
-# ===== DECORADOR PARA LOGIN REQUERIDO =====
-def login_required(f):
-    """Decorador para rutas que requieren login"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'analista_id' not in session:
-            flash('Debe iniciar sesión primero', 'warning')
-            return redirect(url_for('login_analista'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-# ===== FUNCIONES AUXILIARES =====
-
-def cargar_analistas():
-    """Cargar analistas desde la base de datos"""
-    try:
-        if os.path.exists('analistas.json'):
-            with open('analistas.json', 'r', encoding='utf-8') as f:
-                return json.load(f)
-        else:
-            # Crear archivo con analistas por defecto
-            analistas_default = [
-                {
-                    'codigo': 'RAG123',
-                    'nombre': 'Administrador',
-                    'apellido_paterno': 'Sistema',
-                    'apellido_materno': '',
-                    'rfc': 'ADMIN123456RF',
-                    'telefono': '5555555555',
-                    'nip': 'admin123',
-                    'estado': 'aprobado',
-                    'rol': 'admin',
-                    'fecha_registro': datetime.now().isoformat()
-                },
-                {
-                    'codigo': 'E001',
-                    'nombre': 'Juan',
-                    'apellido_paterno': 'Pérez',
-                    'apellido_materno': 'López',
-                    'rfc': 'PELJ850101ABC',
-                    'telefono': '5551234567',
-                    'nip': '1234',
-                    'estado': 'aprobado',
-                    'rol': 'analista',
-                    'fecha_registro': datetime.now().isoformat()
-                }
-            ]
-            
-            with open('analistas.json', 'w', encoding='utf-8') as f:
-                json.dump(analistas_default, f, ensure_ascii=False, indent=2)
-            
-            return analistas_default
-    except Exception as e:
-        print(f"Error cargando analistas: {e}")
-        return []
-
-def guardar_analista(analista_data):
-    """Guardar analista en la base de datos"""
-    try:
-        analistas = cargar_analistas()
-        analistas.append(analista_data)
-        
-        with open('analistas.json', 'w', encoding='utf-8') as f:
-            json.dump(analistas, f, ensure_ascii=False, indent=2, default=str)
-        
-        return True
-    except Exception as e:
-        print(f"Error guardando analista: {e}")
-        return False
-
-def actualizar_analista(codigo, nuevos_datos):
-    """Actualizar datos de un analista"""
-    try:
-        analistas = cargar_analistas()
-        for i, analista in enumerate(analistas):
-            if analista.get('codigo') == codigo:
-                analistas[i].update(nuevos_datos)
-                break
-        
-        with open('analistas.json', 'w', encoding='utf-8') as f:
-            json.dump(analistas, f, ensure_ascii=False, indent=2, default=str)
-        
-        return True
-    except Exception as e:
-        print(f"Error actualizando analista: {e}")
-        return False
-
-def analista_existe(rfc):
-    """Verificar si ya existe un analista con ese RFC"""
-    try:
-        analistas = cargar_analistas()
-        return any(analista.get('rfc') == rfc for analista in analistas)
-    except:
-        return False
-
-def generar_codigo_analista():
-    """Generar código único de analista"""
-    codigo = 'E' + ''.join(random.choices(string.digits, k=3))
-    
-    analistas = cargar_analistas()
-    while any(analista.get('codigo') == codigo for analista in analistas):
-        codigo = 'E' + ''.join(random.choices(string.digits, k=3))
-    
-    return codigo
 
 # ===== RUTAS PRINCIPALES =====
 
@@ -429,8 +335,7 @@ def registro_analista():
                 'telefono': telefono,
                 'nip': nip,
                 'estado': 'pendiente',
-                'rol': 'analista',
-                'fecha_registro': datetime.now().isoformat()
+                'rol': 'analista'
             }
             
             if guardar_analista(nuevo_analista):
@@ -601,21 +506,8 @@ def base():
     """Template base - solo para referencia"""
     return render_template('base.html')
 
-# ===== MANEJO DE ERRORES =====
+# ===== FUNCIONES DE DEBUG =====
 
-@app.errorhandler(404)
-def page_not_found(e):
-    """Página no encontrada"""
-    flash('La página solicitada no fue encontrada', 'error')
-    return redirect(url_for('index'))
-
-@app.errorhandler(500)
-def internal_server_error(e):
-    """Error interno del servidor"""
-    flash('Error interno del servidor', 'error')
-    return redirect(url_for('index'))
-
-# ===== INICIALIZACIÓN DE LA APLICACIÓN =====
 @app.route('/debug_db')
 def debug_db():
     """Debug de la base de datos SQLite"""
@@ -632,22 +524,118 @@ def debug_db():
             cursor.execute("SELECT COUNT(*) FROM analistas WHERE estado = 'aprobado'")
             aprobados = cursor.fetchone()[0]
             
+            cursor.execute("SELECT COUNT(*) FROM analistas WHERE rol = 'admin'")
+            admins = cursor.fetchone()[0]
+            
             html = f"""
             <html>
+            <head><title>Debug SQLite Database</title></head>
             <body style="font-family: Arial; margin: 20px;">
-            <h2>🗃️ SQLite Database Status</h2>
-            <p><strong>Total analistas:</strong> {total}</p>
-            <p><strong>Pendientes:</strong> <span style="color: orange; font-weight: bold;">{pendientes}</span></p>
-            <p><strong>Aprobados:</strong> <span style="color: green; font-weight: bold;">{aprobados}</span></p>
+            <h2>🗃️ Estado de la Base de Datos SQLite</h2>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <p><strong>📊 Total analistas:</strong> {total}</p>
+                <p><strong>⏳ Pendientes:</strong> <span style="color: orange; font-weight: bold;">{pendientes}</span></p>
+                <p><strong>✅ Aprobados:</strong> <span style="color: green; font-weight: bold;">{aprobados}</span></p>
+                <p><strong>👑 Administradores:</strong> <span style="color: blue; font-weight: bold;">{admins}</span></p>
+            </div>
             <hr>
-            <p><a href="/panel_admin" style="color: blue;">← Volver al Panel Admin</a></p>
+            <div style="margin: 20px 0;">
+                <a href="/debug_analistas" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">👥 Ver Todos los Analistas</a>
+                <a href="/panel_admin" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">🏠 Panel Admin</a>
+                <a href="/registro_analista" style="background: #fd7e14; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">➕ Registrar Analista</a>
+            </div>
             </body>
             </html>
             """
             return html
             
     except Exception as e:
-        return f"<h2>❌ Error: {e}</h2><a href='/panel_admin'>← Volver</a>"
+        return f"""
+        <html>
+        <body style="font-family: Arial; margin: 20px;">
+        <h2 style="color: red;">❌ Error de Base de Datos</h2>
+        <p><strong>Error:</strong> {e}</p>
+        <a href="/panel_admin" style="color: blue;">← Volver al Panel Admin</a>
+        </body>
+        </html>
+        """
+
+@app.route('/debug_analistas')
+def debug_analistas():
+    """Ver todos los analistas registrados"""
+    try:
+        analistas = cargar_analistas()
+        
+        html = """
+        <html>
+        <head><title>Debug Analistas</title></head>
+        <body style="font-family: Arial; margin: 20px;">
+        <h2>🔍 Todos los Analistas Registrados</h2>
+        """
+        
+        html += f"<p><strong>Total:</strong> {len(analistas)} analistas</p><hr>"
+        
+        if not analistas:
+            html += "<p style='color: red;'>❌ No hay analistas en el sistema</p>"
+        else:
+            for i, analista in enumerate(analistas):
+                estado_color = {
+                    'pendiente': 'orange',
+                    'aprobado': 'green', 
+                    'rechazado': 'red'
+                }.get(analista.get('estado', 'unknown'), 'gray')
+                
+                html += f"""
+                <div style="border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; background: #f9f9f9;">
+                    <h3 style="margin-top: 0;">👤 {analista.get('nombre', 'N/A')} {analista.get('apellido_paterno', '')} {analista.get('apellido_materno', '')}</h3>
+                    <p><strong>ID:</strong> {analista.get('id', 'N/A')}</p>
+                    <p><strong>Código:</strong> <code>{analista.get('codigo', 'N/A')}</code></p>
+                    <p><strong>RFC:</strong> <code>{analista.get('rfc', 'N/A')}</code></p>
+                    <p><strong>Teléfono:</strong> {analista.get('telefono', 'N/A')}</p>
+                    <p><strong>Estado:</strong> <span style="color: {estado_color}; font-weight: bold; font-size: 1.1em;">{analista.get('estado', 'N/A').upper()}</span></p>
+                    <p><strong>Rol:</strong> {analista.get('rol', 'N/A')}</p>
+                    <p><strong>Fecha:</strong> {analista.get('fecha_registro', 'N/A')}</p>
+                </div>
+                """
+        
+        html += """
+        <hr>
+        <div style="margin: 20px 0;">
+            <a href="/debug_db" style="background: #6c757d; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">📊 Ver Estadísticas DB</a>
+            <a href="/panel_admin" style="background: #28a745; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-right: 10px;">🏠 Panel Admin</a>
+            <a href="/" style="background: #007bff; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px;">🏠 Inicio</a>
+        </div>
+        </body>
+        </html>
+        """
+        return html
+        
+    except Exception as e:
+        return f"""
+        <html>
+        <body style="font-family: Arial; margin: 20px;">
+        <h2 style="color: red;">❌ Error al cargar analistas</h2>
+        <p><strong>Error:</strong> {str(e)}</p>
+        <p><a href="/panel_admin">← Volver al Panel Admin</a></p>
+        </body>
+        </html>
+        """
+
+# ===== MANEJO DE ERRORES =====
+
+@app.errorhandler(404)
+def page_not_found(e):
+    """Página no encontrada"""
+    flash('La página solicitada no fue encontrada', 'error')
+    return redirect(url_for('index'))
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    """Error interno del servidor"""
+    flash('Error interno del servidor', 'error')
+    return redirect(url_for('index'))
+
+# ===== INICIALIZACIÓN DE LA APLICACIÓN =====
 
 if __name__ == '__main__':
     print("🚀 Iniciando Sistema de Análisis Crediticio...")
