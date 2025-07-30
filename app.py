@@ -263,11 +263,63 @@ def aprobar_todos_los_analistas():
 
 # RUTAS DE LA APLICACIÓN
 
-@app.route('/registro_analista')
+@app.route('/registro_analista', methods=['GET', 'POST'])
 def registro_analista():
-    """Página de registro de analista"""
+    """Página de registro de analista - maneja GET y POST"""
+    if request.method == 'POST':
+        # Procesar el formulario de registro
+        import random
+        codigo = f"E{random.randint(100, 999)}"
+        
+        nombre_completo = request.form.get('nombre', '').strip()
+        partes = nombre_completo.split(' ')
+        
+        nombre = partes[0] if len(partes) > 0 else ''
+        apellido_paterno = partes[1] if len(partes) > 1 else ''
+        apellido_materno = ' '.join(partes[2:]) if len(partes) > 2 else ''
+        
+        analista_data = {
+            'codigo': codigo,
+            'nombre': nombre,
+            'apellido_paterno': apellido_paterno,
+            'apellido_materno': apellido_materno,
+            'rfc': request.form.get('rfc', '').upper(),
+            'telefono': request.form.get('telefono', ''),
+            'nip': request.form.get('nip', ''),
+            'estado': 'pendiente',
+            'rol': 'analista'
+        }
+        
+        if guardar_analista(analista_data):
+            flash(f'Registro exitoso. Su código es: {codigo}', 'success')
+            # Si existe registro_exitoso.html, úsalo
+            try:
+                return render_template('registro_exitoso.html', 
+                                     codigo=codigo, 
+                                     nip=request.form.get('nip'),
+                                     mensaje="Su registro ha sido completado. Un administrador debe aprobar su cuenta.")
+            except:
+                # Si no existe, usar el template de registro con mensaje
+                return render_template('registro_analista.html', 
+                                     success=True, 
+                                     codigo=codigo,
+                                     mensaje="Registro exitoso. Guarde su código para iniciar sesión.")
+        else:
+            flash('Error al registrar. El RFC puede estar duplicado.', 'error')
+    
+    # GET request - mostrar formulario
     return render_template('registro_analista.html')
-
+@app.route('/captura_analista', methods=['GET', 'POST'])
+def captura_analista():
+    """Captura de analista - alternativa a registro_analista"""
+    # Redirigir a registro_analista si existe ese template
+    try:
+        if request.method == 'POST':
+            return registro_analista()
+        return render_template('captura_analista.html')
+    except:
+        # Si no existe captura_analista.html, usar registro_analista
+        return registro_analista()
 @app.route('/')
 def index():
     """Página principal"""
@@ -275,51 +327,46 @@ def index():
 
 @app.route('/login_analista', methods=['GET', 'POST'])
 def login_analista():
-    """Login de analista - VERSIÓN CORREGIDA"""
+    """Login de analista con debugging mejorado"""
     if request.method == 'POST':
         try:
-            # Normalizar entrada: limpiar espacios y convertir a mayúsculas
             codigo = request.form.get('codigo', '').strip().upper()
             nip = request.form.get('nip', '').strip()
 
             print(f"🔐 Intento de login - Código: '{codigo}', NIP: '{nip}'")
             
             if not codigo or not nip:
-                flash('Ingrese código y NIP', 'error')
+                flash('Por favor ingrese código y NIP', 'error')
                 return render_template('login_analista.html')
 
-            # Cargar analistas de la base de datos
+            # Cargar todos los analistas
             analistas = cargar_analistas()
             print(f"📋 Total analistas en BD: {len(analistas)}")
-            print(f"📋 Códigos disponibles: {[a.get('codigo') for a in analistas]}")
             
-            # Buscar analista con código exacto (comparación normalizada)
+            # Debugging: mostrar todos los códigos disponibles
+            codigos_disponibles = [a.get('codigo', '') for a in analistas]
+            print(f"📋 Códigos en BD: {codigos_disponibles}")
+            
+            # Buscar analista
             analista = None
             for a in analistas:
-                codigo_bd = str(a.get('codigo', '')).strip().upper()
-                print(f"Comparando: '{codigo}' con '{codigo_bd}'")
-                if codigo_bd == codigo:
+                if str(a.get('codigo', '')).strip().upper() == codigo:
                     analista = a
-                    print(f"✅ Analista encontrado: {a.get('nombre')}")
                     break
 
             if not analista:
-                print(f"❌ Código {codigo} no encontrado en la base de datos")
-                flash('Código de analista no encontrado', 'error')
+                print(f"❌ Código {codigo} no encontrado")
+                print(f"   Códigos disponibles: {codigos_disponibles}")
+                flash(f'Código de analista no encontrado. Códigos válidos: {", ".join(codigos_disponibles[:3])}...', 'error')
                 return render_template('login_analista.html')
 
-            # Verificar estado del analista
-            estado = analista.get('estado', '').strip().lower()
-            print(f"📊 Estado del analista: '{estado}'")
-            
-            if estado != 'aprobado':
-                flash('Su cuenta está pendiente de aprobación', 'warning')
+            # Verificar estado
+            if analista.get('estado', '').lower() != 'aprobado':
+                flash('Su cuenta está pendiente de aprobación por un administrador', 'warning')
                 return render_template('login_analista.html')
 
             # Verificar NIP
-            nip_bd = str(analista.get('nip', '')).strip()
-            if nip_bd != nip:
-                print(f"❌ NIP incorrecto. Esperado: '{nip_bd}', Recibido: '{nip}'")
+            if str(analista.get('nip', '')).strip() != nip:
                 flash('NIP incorrecto', 'error')
                 return render_template('login_analista.html')
 
@@ -328,17 +375,16 @@ def login_analista():
             session['user_id'] = analista.get('id')
             session['user_codigo'] = codigo
             session['user_nombre'] = analista.get('nombre', '')
+            session['user_rol'] = analista.get('rol', 'analista')
             
-            print(f"✅ Login exitoso para analista {codigo}")
             flash(f'Bienvenido {analista.get("nombre")}', 'success')
-            
-            # Redirigir al módulo de créditos
             return redirect(url_for('creditos'))
 
         except Exception as e:
             print(f"❌ Error en login: {e}")
+            import traceback
+            traceback.print_exc()
             flash('Error al procesar el login', 'error')
-            return render_template('login_analista.html')
     
     return render_template('login_analista.html')
 
