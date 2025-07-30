@@ -951,3 +951,58 @@ if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
+@app.route('/init_test_data')
+def init_test_data():
+    """Crear datos de prueba para desarrollo"""
+    try:
+        # Crear analista de prueba aprobado
+        analista_test = {
+            'codigo': 'TEST001',
+            'nombre': 'Usuario',
+            'apellido_paterno': 'Test',
+            'apellido_materno': 'Demo',
+            'rfc': 'TEST010101XXX',
+            'telefono': '5551234567',
+            'nip': '1234',
+            'estado': 'aprobado',
+            'rol': 'analista'
+        }
+        
+        with get_db() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute('''
+                    INSERT INTO analistas (codigo, nombre, apellido_paterno, apellido_materno, 
+                                         rfc, telefono, nip, estado, rol)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    analista_test['codigo'],
+                    analista_test['nombre'],
+                    analista_test['apellido_paterno'],
+                    analista_test['apellido_materno'],
+                    analista_test['rfc'],
+                    analista_test['telefono'],
+                    analista_test['nip'],
+                    analista_test['estado'],
+                    analista_test['rol']
+                ))
+                conn.commit()
+                mensaje = f"✅ Analista de prueba creado: Código: {analista_test['codigo']}, NIP: {analista_test['nip']}"
+            except sqlite3.IntegrityError:
+                mensaje = "ℹ️ El analista de prueba ya existe"
+        
+        return f'''
+        <h1>Datos de Prueba</h1>
+        <p>{mensaje}</p>
+        <h2>Credenciales de prueba:</h2>
+        <ul>
+            <li><strong>Código:</strong> TEST001</li>
+            <li><strong>NIP:</strong> 1234</li>
+            <li><strong>Estado:</strong> APROBADO</li>
+        </ul>
+        <p><a href="/login_analista">Ir al login</a></p>
+        <p><a href="/debug_analistas">Ver todos los analistas</a></p>
+        '''
+    except Exception as e:
+        return f"Error: {e}"
