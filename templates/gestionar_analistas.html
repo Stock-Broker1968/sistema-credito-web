@@ -103,7 +103,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    {% if analista.estado == 'pendiente' %}
+                                   {% if analista.estado == 'pendiente' %}
                                         <a href="{{ url_for('aprobar_analista', codigo=analista.codigo) }}" 
                                            class="btn btn-success" 
                                            onclick="return confirm('¿Aprobar analista {{ analista.codigo }}?')"
