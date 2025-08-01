@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card card-custom">
@@ -15,9 +14,7 @@
                                 <i class="fas fa-file-alt text-primary me-3"></i>
                                 Todas las Solicitudes
                             </h1>
-                            <p class="text-muted mb-0">
-                                Vista completa de solicitudes del sistema
-                            </p>
+                            <p class="text-muted mb-0">Vista completa de solicitudes del sistema</p>
                         </div>
                         <div class="col-md-4 text-end">
                             <a href="{{ url_for('panel_admin') }}" class="btn btn-outline-secondary">
@@ -33,7 +30,7 @@
     <!-- Filtros -->
     <div class="row mb-4">
         <div class="col-md-3">
-            <select class="form-select" id="filtroEstado">
+            <select class="form-select">
                 <option value="">Todos los estados</option>
                 <option value="pendiente">Pendientes</option>
                 <option value="aprobada">Aprobadas</option>
@@ -41,18 +38,16 @@
             </select>
         </div>
         <div class="col-md-3">
-            <select class="form-select" id="filtroAnalista">
+            <select class="form-select">
                 <option value="">Todos los analistas</option>
                 <option value="E001">E001 - Juan Pérez</option>
-                <option value="E002">E002 - María García</option>
             </select>
         </div>
         <div class="col-md-4">
-            <input type="text" class="form-control" id="buscarSolicitud" 
-                   placeholder="Buscar por folio o nombre del cliente...">
+            <input type="text" class="form-control" placeholder="Buscar por folio o nombre del cliente...">
         </div>
         <div class="col-md-2">
-            <button class="btn btn-primary w-100" onclick="aplicarFiltros()">
+            <button class="btn btn-primary w-100">
                 <i class="fas fa-search me-2"></i>Filtrar
             </button>
         </div>
@@ -62,8 +57,7 @@
     <div class="card card-custom">
         <div class="card-header bg-transparent">
             <h5 class="mb-0">
-                <i class="fas fa-list me-2"></i>
-                Lista de Solicitudes (<span id="totalSolicitudes">15</span>)
+                <i class="fas fa-list me-2"></i>Lista de Solicitudes (3)
             </h5>
         </div>
         <div class="card-body p-0">
@@ -80,8 +74,7 @@
                             <th>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="tablaSolicitudes">
-                        <!-- Datos de ejemplo -->
+                    <tbody>
                         <tr>
                             <td><span class="badge bg-info">S-00001</span></td>
                             <td><strong>Ana María González</strong><br><small>RFC: GOMA850101ABC</small></td>
@@ -91,10 +84,10 @@
                             <td><small>29/01/2025 10:30</small></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-info" onclick="verDetalle('S-00001')" title="Ver detalle">
+                                    <button class="btn btn-outline-info" title="Ver detalle">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="btn btn-outline-primary" onclick="descargarPDF('S-00001')" title="Descargar PDF">
+                                    <button class="btn btn-outline-primary" title="Descargar PDF">
                                         <i class="fas fa-download"></i>
                                     </button>
                                 </div>
@@ -109,13 +102,13 @@
                             <td><small>29/01/2025 09:15</small></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-info" onclick="verDetalle('S-00002')" title="Ver detalle">
+                                    <button class="btn btn-outline-info" title="Ver detalle">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="btn btn-outline-success" onclick="aprobarSolicitud('S-00002')" title="Aprobar">
+                                    <button class="btn btn-outline-success" title="Aprobar">
                                         <i class="fas fa-check"></i>
                                     </button>
-                                    <button class="btn btn-outline-danger" onclick="rechazarSolicitud('S-00002')" title="Rechazar">
+                                    <button class="btn btn-outline-danger" title="Rechazar">
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -130,10 +123,10 @@
                             <td><small>28/01/2025 16:45</small></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-info" onclick="verDetalle('S-00003')" title="Ver detalle">
+                                    <button class="btn btn-outline-info" title="Ver detalle">
                                         <i class="fas fa-eye"></i>
                                     </button>
-                                    <button class="btn btn-outline-secondary" onclick="verMotivo('S-00003')" title="Ver motivo rechazo">
+                                    <button class="btn btn-outline-secondary" title="Ver motivo rechazo">
                                         <i class="fas fa-question-circle"></i>
                                     </button>
                                 </div>
@@ -145,120 +138,4 @@
         </div>
     </div>
 </div>
-
-<!-- Modal para Detalle de Solicitud -->
-<div class="modal fade" id="detalleSolicitudModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-file-alt me-2"></i>
-                    Detalle de Solicitud
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="detalleSolicitudContent">
-                <!-- Se llena via JavaScript -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function verDetalle(folio) {
-    const content = `
-        <div class="row">
-            <div class="col-md-6">
-                <h6>Información del Cliente</h6>
-                <p><strong>Folio:</strong> ${folio}</p>
-                <p><strong>Nombre:</strong> Cliente Ejemplo</p>
-                <p><strong>RFC:</strong> CLEX850101ABC</p>
-                <p><strong>Teléfono:</strong> 5551234567</p>
-            </div>
-            <div class="col-md-6">
-                <h6>Detalles del Crédito</h6>
-                <p><strong>Monto Solicitado:</strong> $150,000</p>
-                <p><strong>Plazo:</strong> 24 meses</p>
-                <p><strong>Tasa de Interés:</strong> 18% anual</p>
-                <p><strong>Finalidad:</strong> Capital de trabajo</p>
-            </div>
-        </div>
-        <hr>
-        <div class="row">
-            <div class="col-12">
-                <h6>Evaluación</h6>
-                <p><strong>Score Crediticio:</strong> 750 puntos</p>
-                <p><strong>Capacidad de Pago:</strong> Adecuada</p>
-                <p><strong>Documentación:</strong> Completa</p>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('detalleSolicitudContent').innerHTML = content;
-    new bootstrap.Modal(document.getElementById('detalleSolicitudModal')).show();
-}
-
-function aplicarFiltros() {
-    const estado = document.getElementById('filtroEstado').value;
-    const analista = document.getElementById('filtroAnalista').value;
-    const busqueda = document.getElementById('buscarSolicitud').value.toLowerCase();
-    
-    const filas = document.querySelectorAll('#tablaSolicitudes tr');
-    let visibleCount = 0;
-    
-    filas.forEach(fila => {
-        const textoFila = fila.textContent.toLowerCase();
-        let mostrar = true;
-        
-        if (estado && !fila.querySelector('.badge:last-of-type').textContent.toLowerCase().includes(estado)) {
-            mostrar = false;
-        }
-        
-        if (analista && !textoFila.includes(analista.toLowerCase())) {
-            mostrar = false;
-        }
-        
-        if (busqueda && !textoFila.includes(busqueda)) {
-            mostrar = false;
-        }
-        
-        if (mostrar) {
-            fila.style.display = '';
-            visibleCount++;
-        } else {
-            fila.style.display = 'none';
-        }
-    });
-    
-    document.getElementById('totalSolicitudes').textContent = visibleCount;
-}
-
-function aprobarSolicitud(folio) {
-    if (confirm(`¿Está seguro de aprobar la solicitud ${folio}?`)) {
-        alert(`Solicitud ${folio} aprobada correctamente.`);
-        window.location.reload();
-    }
-}
-
-function rechazarSolicitud(folio) {
-    const motivo = prompt(`Ingrese el motivo del rechazo para la solicitud ${folio}:`);
-    if (motivo) {
-        alert(`Solicitud ${folio} rechazada. Motivo: ${motivo}`);
-        window.location.reload();
-    }
-}
-
-function descargarPDF(folio) {
-    alert(`Descargando PDF de la solicitud ${folio}...`);
-}
-
-function verMotivo(folio) {
-    alert(`Motivo de rechazo para ${folio}: Ingresos insuficientes para el monto solicitado.`);
-}
-</script>
 {% endblock %}
