@@ -83,6 +83,7 @@
                                 {{ analista.telefono }}
                             </td>
                             <td>
+                                {% if analista.estado == 'aprobado' %}
                                 <td>
                                     {% if analista.estado == 'aprobado' %}
                                     <span class="badge bg-success">
